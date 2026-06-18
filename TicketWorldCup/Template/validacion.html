@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Validación | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Validación</p>
+    <h1>QR dinámico y acceso</h1>
+    <p class="hero-copy">Aquí se genera el QR, se registra el dispositivo autorizado y se valida la entrada con el funcionario correcto.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Registrar dispositivo</h2>
+    <div class="form-grid">
+      <input id="d_dirMAC" placeholder="MAC del dispositivo" />
+      <input id="d_emailFuncionario" placeholder="Email funcionario" />
+    </div>
+    <div class="actions"><button class="btn secondary" onclick="registrarDispositivo()">Registrar dispositivo</button></div>
+    <div class="result" id="resDispositivo"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Generar QR</h2>
+    <div class="form-grid">
+      <input id="qr_idEntrada" placeholder="ID entrada" />
+      <input id="qr_tiempo" placeholder="Vencimiento segundos" value="30" />
+      <input id="qr_valor" class="full" placeholder="Valor QR opcional" />
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="generarQR()">Generar</button>
+      <button class="btn ghost" onclick="verQRActivo()">Ver QR activo</button>
+    </div>
+    <div class="result" id="resQR"></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Validar entrada</h2>
+    <div class="form-grid">
+      <input id="v_idToken" placeholder="ID token" />
+      <input id="v_idDispositivo" placeholder="ID dispositivo" />
+      <input id="v_emailFuncionario" placeholder="Email funcionario" />
+    </div>
+    <div class="actions"><button class="btn danger" onclick="validarEntrada()">Validar</button></div>
+    <div class="result" id="resValidacion"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function registrarDispositivo() {
+    try {
+      fill('resDispositivo', await post('/dispositivo', {
+        dirMAC: d_dirMAC.value,
+        emailFuncionario: d_emailFuncionario.value,
+      }));
+    } catch (error) {
+      fill('resDispositivo', error.message);
+    }
+  }
+
+  async function generarQR() {
+    try {
+      fill('resQR', await post(`/entrada/${qr_idEntrada.value}/qr`, {
+        valor: qr_valor.value,
+        tiempoVencimiento: qr_tiempo.value,
+      }));
+    } catch (error) {
+      fill('resQR', error.message);
+    }
+  }
+
+  async function verQRActivo() {
+    try {
+      fill('resQR', await requestJSON(`/entrada/${qr_idEntrada.value}/qr`));
+    } catch (error) {
+      fill('resQR', error.message);
+    }
+  }
+
+  async function validarEntrada() {
+    try {
+      fill('resValidacion', await post('/validar', {
+        idToken: v_idToken.value,
+        idDispositivo: v_idDispositivo.value,
+        emailFuncionario: v_emailFuncionario.value,
+      }));
+    } catch (error) {
+      fill('resValidacion', error.message);
+    }
+  }
+</script>
+{% endblock %}

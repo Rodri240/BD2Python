@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid" style="grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); align-items: center; min-height: calc(100vh - 180px);">
+  <div class="hero-card">
+    <p class="eyebrow">Acceso al sistema</p>
+    <h1>Iniciá sesión para entrar a la demo</h1>
+    <p class="hero-copy">
+      El acceso queda guardado en la sesión del navegador para mantenerte autenticado mientras navegás por las páginas del sistema.
+    </p>
+    <div class="badge-row">
+      <span class="badge">Sesión persistente</span>
+      <span class="badge">Login real contra la base</span>
+      <span class="badge">Páginas protegidas</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Ingresar</h2>
+    <form method="post" action="{{ url_for('login') }}">
+      <div class="form-grid">
+        <input name="email" type="email" placeholder="Email" required class="full" />
+        <input name="password" type="password" placeholder="Contraseña" required class="full" />
+      </div>
+      <div class="actions">
+        <button class="btn" type="submit">Entrar</button>
+        <a class="btn ghost" href="{{ url_for('index') }}" style="text-decoration:none;">Ver inicio</a>
+      </div>
+    </form>
+    {% if error %}
+    <div class="result">{{ error }}</div>
+    {% else %}
+    <div class="result">
+      Usá un usuario ya cargado en la base para ingresar.
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
