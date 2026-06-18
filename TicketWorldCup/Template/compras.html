@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Compras | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Compras</p>
+    <h1>Venta individual y múltiple</h1>
+    <p class="hero-copy">Desde esta página se prueba el límite de 5 entradas por transacción y el cálculo con comisión vigente.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Compra simple</h2>
+    <div class="form-grid">
+      <input id="c_emailComprador" placeholder="Email comprador" />
+      <select id="c_emailCompradorAdmin" class="full" style="display:none;">
+        <option value="">Cargando compradores...</option>
+      </select>
+      <select id="c_idEvento" class="full">
+        <option value="">Cargando eventos...</option>
+      </select>
+      <select id="c_idSector" class="full">
+        <option value="">Selecciona un evento primero</option>
+      </select>
+      <input id="c_cantidad" placeholder="Cantidad" />
+    </div>
+    <div class="actions"><button class="btn" onclick="comprarSimple()">Comprar</button></div>
+    <div class="result" id="resCompra"></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Rankings</h2>
+    <div class="actions"><button class="btn ghost" onclick="cargarRankings()">Actualizar rankings</button></div>
+    <div class="result" id="resRanking"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const sessionEmail = {{ (session_email or '')|tojson }};
+  const sessionRoles = {{ (session_roles or {})|tojson }};
+
+  async function cargarCompradoresAdmin() {
+    try {
+      const data = await requestJSON('/usuarios/compradores');
+      const compradores = data.compradores || [];
+      const options = compradores.map((comprador) => {
+        const etiqueta = [comprador.email, comprador.estadoVerifIdentidad].filter(Boolean).join(' | ');
+        return `<option value="${comprador.email}">${etiqueta}</option>`;
+      }).join('');
+
+      c_emailCompradorAdmin.innerHTML = '<option value="">Selecciona un comprador</option>' + options;
+      if (compradores.length) {
+        c_emailCompradorAdmin.value = compradores[0].email;
+      }
+    } catch (error) {
+      c_emailCompradorAdmin.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarSectoresCompra(idEvento) {
+    if (!idEvento) {
+      c_idSector.innerHTML = '<option value="">Selecciona un evento primero</option>';
+      return;
+    }
+
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/sectores`);
+      const sectores = data.sectores || [];
+      const options = sectores.map((sector) => {
+        const etiqueta = [
+          `Sector ${sector.codigo}`,
+          `ID ${sector.idSector}`,
+          `${sector.entradasDisponibles} libres`,
+          `$${sector.costoEntrada}`,
+        ].join(' | ');
+        return `<option value="${sector.idSector}">${etiqueta}</option>`;
+      }).join('');
+
+      c_idSector.innerHTML = options
+        ? '<option value="">Selecciona un sector</option>' + options
+        : '<option value="">No hay sectores disponibles</option>';
+    } catch (error) {
+      c_idSector.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarEventosCompra() {
+    try {
+      const data = await requestJSON('/eventos');
+      const eventos = data.eventos || [];
+      const options = eventos.map((evento) => {
+        const etiqueta = [evento.idEvento, evento.nombreEvento, evento.fecha, evento.hora]
+          .filter(Boolean)
+          .join(' | ');
+        return `<option value="${evento.idEvento}">${etiqueta}</option>`;
+      }).join('');
+
+      c_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
+      c_idEvento.onchange = () => cargarSectoresCompra(c_idEvento.value);
+      if (eventos.length) {
+        c_idEvento.value = eventos[0].idEvento;
+        await cargarSectoresCompra(c_idEvento.value);
+      }
+    } catch (error) {
+      c_idEvento.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function comprarSimple() {
+    try {
+      const emailComprador = sessionRoles.admin ? c_emailCompradorAdmin.value : c_emailComprador.value;
+      const respuesta = await post('/comprar', {
+        emailComprador,
+        idEvento: c_idEvento.value,
+        idSector: c_idSector.value,
+        cantidad: c_cantidad.value,
+      });
+
+      fill('resCompra', {
+        mensaje: 'Compra registrada correctamente',
+        idVenta: respuesta.idVenta,
+        compra: respuesta.compra,
+      });
+
+      c_cantidad.value = '';
+      await cargarSectoresCompra(c_idEvento.value);
+      await cargarRankings();
+    } catch (error) {
+      fill('resCompra', error.message);
+    }
+  }
+
+  async function cargarRankings() {
+    try {
+      const eventos = await requestJSON('/ranking/eventos?limite=5');
+      const compradores = await requestJSON('/ranking/compradores?limite=5');
+      fill('resRanking', { eventos: eventos.ranking, compradores: compradores.ranking });
+    } catch (error) {
+      fill('resRanking', error.message);
+    }
+  }
+
+  cargarEventosCompra();
+
+  if (sessionRoles.admin) {
+    c_emailComprador.style.display = 'none';
+    c_emailCompradorAdmin.style.display = 'block';
+    cargarCompradoresAdmin();
+  } else if (sessionEmail) {
+    c_emailComprador.value = sessionEmail;
+    c_emailComprador.readOnly = true;
+  }
+</script>
+{% endblock %}

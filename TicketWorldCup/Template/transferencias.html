@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Transferencias | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Transferencias</p>
+    <h1>Flujo de cesión de entradas</h1>
+    <p class="hero-copy">La transferencia queda registrada, se acepta o rechaza, y la entrada cambia de propietario sólo al aceptar.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Solicitar transferencia</h2>
+    <div class="form-grid">
+      <input id="t_idEntrada" placeholder="ID entrada" />
+      <input id="t_emailOrigen" placeholder="Email origen" />
+      <input id="t_emailDestino" placeholder="Email destino" />
+    </div>
+    <div class="actions"><button class="btn" onclick="solicitarTransferencia()">Solicitar</button></div>
+    <div class="result" id="resTransferencia"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Responder transferencia</h2>
+    <div class="form-grid">
+      <input id="rt_idTransferencia" placeholder="ID transferencia" />
+      <input id="rt_estado" placeholder="aceptada / rechazada" />
+    </div>
+    <div class="actions"><button class="btn secondary" onclick="responderTransferencia()">Responder</button></div>
+    <div class="result" id="resRespuestaTransferencia"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function solicitarTransferencia() {
+    try {
+      fill('resTransferencia', await post('/transferencia', {
+        idEntrada: t_idEntrada.value,
+        emailOrigen: t_emailOrigen.value,
+        emailDestino: t_emailDestino.value,
+      }));
+    } catch (error) {
+      fill('resTransferencia', error.message);
+    }
+  }
+
+  async function responderTransferencia() {
+    try {
+      fill('resRespuestaTransferencia', await post(`/transferencia/${rt_idTransferencia.value}`, {
+        estado: rt_estado.value,
+      }));
+    } catch (error) {
+      fill('resRespuestaTransferencia', error.message);
+    }
+  }
+</script>
+{% endblock %}

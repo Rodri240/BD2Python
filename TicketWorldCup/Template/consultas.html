@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Consultas | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Consultas</p>
+    <h1>Reportes y vistas por usuario</h1>
+    <p class="hero-copy">Esta sección permite revisar compras, entradas, transferencias, sectores de evento, rankings y cobertura del funcionario.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Consultas de usuario</h2>
+    <div class="form-grid">
+      <input id="q_email" placeholder="Email usuario" />
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="verCompras()">Ver compras</button>
+      <button class="btn" onclick="verEntradas()">Ver entradas</button>
+      <button class="btn" onclick="verTransferencias()">Ver transferencias</button>
+    </div>
+    <div class="result" id="resConsultas"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Evento y funcionario</h2>
+    <div class="form-grid">
+      <input id="q_idEvento" placeholder="ID evento" />
+      <input id="cov_emailFuncionario" placeholder="Email funcionario" />
+      <input id="cov_idEvento" placeholder="ID evento para cobertura" />
+    </div>
+    <div class="actions">
+      <button class="btn ghost" onclick="verSectoresEvento()">Ver sectores del evento</button>
+      <button class="btn secondary" onclick="verCobertura()">Ver cobertura</button>
+    </div>
+    <div class="result" id="resExtras"></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Rankings</h2>
+    <div class="actions"><button class="btn ghost" onclick="cargarRankings()">Actualizar rankings</button></div>
+    <div class="result" id="resRanking"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function tableMarkup(rows) {
+    if (!rows || !rows.length) {
+      return '<div class="small-note">No hay datos para mostrar.</div>';
+    }
+
+    const headers = Object.keys(rows[0]);
+    const headerCells = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('');
+    const bodyRows = rows.map((row) => {
+      const cells = headers.map((header) => `<td>${escapeHtml(row[header])}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    return `<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+  }
+
+  function renderReport(containerId, title, rows) {
+    document.getElementById(containerId).innerHTML = `
+      <div class="pill">${escapeHtml(title)}</div>
+      <div style="margin-top: 12px; overflow-x: auto;">${tableMarkup(rows)}</div>
+    `;
+  }
+
+  async function verCompras() {
+    try {
+      const data = await requestJSON(`/usuario/${q_email.value}/compras`);
+      renderReport('resConsultas', 'Compras del usuario', data.compras);
+    } catch (error) {
+      fill('resConsultas', error.message);
+    }
+  }
+
+  async function verEntradas() {
+    try {
+      const data = await requestJSON(`/usuario/${q_email.value}/entradas`);
+      renderReport('resConsultas', 'Entradas asignadas', data.entradas);
+    } catch (error) {
+      fill('resConsultas', error.message);
+    }
+  }
+
+  async function verTransferencias() {
+    try {
+      const data = await requestJSON(`/usuario/${q_email.value}/transferencias`);
+      renderReport('resConsultas', 'Transferencias del usuario', data.transferencias);
+    } catch (error) {
+      fill('resConsultas', error.message);
+    }
+  }
+
+  async function verSectoresEvento() {
+    try {
+      const data = await requestJSON(`/eventos/${q_idEvento.value}/sectores`);
+      renderReport('resExtras', 'Sectores del evento', data.sectores);
+    } catch (error) {
+      fill('resExtras', error.message);
+    }
+  }
+
+  async function verCobertura() {
+    try {
+      const data = await requestJSON(`/funcionario/${cov_emailFuncionario.value}/evento/${cov_idEvento.value}/cobertura`);
+      renderReport('resExtras', 'Cobertura por sector', data.cobertura);
+    } catch (error) {
+      fill('resExtras', error.message);
+    }
+  }
+
+  async function cargarRankings() {
+    try {
+      const eventos = await requestJSON('/ranking/eventos?limite=5');
+      const compradores = await requestJSON('/ranking/compradores?limite=5');
+      document.getElementById('resRanking').innerHTML = `
+        <div class="pill">Eventos más vendidos</div>
+        <div style="margin-top: 12px; overflow-x: auto;">${tableMarkup(eventos.ranking)}</div>
+        <div class="pill" style="margin-top: 18px; display: inline-block;">Mayores compradores</div>
+        <div style="margin-top: 12px; overflow-x: auto;">${tableMarkup(compradores.ranking)}</div>
+      `;
+    } catch (error) {
+      fill('resRanking', error.message);
+    }
+  }
+</script>
+{% endblock %}

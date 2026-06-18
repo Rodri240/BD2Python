@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}Infraestructura | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Infraestructura</p>
+    <h1>Estadios, sectores y eventos</h1>
+    <p class="hero-copy">Aquí se administran los recintos, la capacidad por sector, los eventos y la relación con los equipos.</p>
+    <p class="small-note">Las acciones de alta requieren un usuario administrador autenticado. Si tu sesión no es de admin, el sistema las rechazará con un error claro.</p>
+    <p class="small-note">Usuario activo: <strong id="infraSesion">{{ session_email or 'sin sesión' }}</strong></p>
+  </div>
+
+  <div class="panel">
+    <h2>Crear estadio</h2>
+    <div class="form-grid">
+      <input id="est_nombre" placeholder="Estadio" />
+      <input id="est_pais" placeholder="País" />
+      <input id="est_ciudad" placeholder="Ciudad" />
+      <input id="est_emailAdmin" placeholder="Email admin" />
+      <input id="est_fechaAsignacion" class="full" placeholder="Fecha asignación YYYY-MM-DD" />
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="crearEstadio()">Crear estadio</button>
+      <button class="btn ghost" onclick="cargarEstadios()">Ver estadios creados</button>
+    </div>
+    <div class="result" id="resEstadio"></div>
+    <div class="result" id="resEstadios"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Crear sector</h2>
+    <div class="form-grid">
+      <select id="sec_idEstadio">
+        <option value="">Selecciona un estadio</option>
+      </select>
+      <select id="sec_codigo">
+        <option value="">Selecciona un código</option>
+      </select>
+      <input id="sec_capacidad" placeholder="Capacidad" />
+      <input id="sec_costo" placeholder="Costo entrada" />
+    </div>
+    <div class="actions">
+      <button class="btn secondary" onclick="crearSector()">Crear sector</button>
+      <button class="btn ghost" onclick="cargarSectores()">Ver sectores creados</button>
+    </div>
+    <div class="result" id="resSector"></div>
+    <div class="result" id="resSectores"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Crear evento</h2>
+    <div class="form-grid">
+      <input id="ev_nombre" placeholder="Nombre evento" />
+      <input id="ev_fecha" placeholder="Fecha YYYY-MM-DD" />
+      <input id="ev_hora" placeholder="Hora HH:MM:SS" />
+      <select id="ev_idEstadio">
+        <option value="">Selecciona un estadio</option>
+      </select>
+      <input id="ev_emailAdmin" class="full" placeholder="Email admin" />
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="crearEvento()">Crear evento</button>
+      <button class="btn ghost" onclick="cargarEventos()">Ver eventos creados</button>
+    </div>
+    <div class="result" id="resEvento"></div>
+    <div class="result" id="resEventos"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Vinculaciones</h2>
+    <div class="form-grid">
+      <select id="ee_idEvento">
+        <option value="">Selecciona un evento</option>
+      </select>
+      <select id="ee_idEquipo">
+        <option value="">Selecciona un equipo</option>
+      </select>
+      <select id="ee_rol">
+        <option value="">Selecciona un rol</option>
+        <option value="local">local</option>
+        <option value="visitante">visitante</option>
+      </select>
+      <select id="es_idEvento">
+        <option value="">Selecciona un evento</option>
+      </select>
+      <select id="es_idSector">
+        <option value="">Selecciona un evento primero</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn secondary" onclick="vincularEquipo()">Vincular equipo</button>
+      <button class="btn secondary" onclick="habilitarSector()">Habilitar sector</button>
+      <button class="btn ghost" onclick="cargarVinculaciones()">Ver vinculaciones creadas</button>
+    </div>
+    <div class="result" id="resVinculos"></div>
+    <div class="result" id="resVinculaciones"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const sessionRoles = {{ (session_roles or {})|tojson }};
+  const headerPriority = [
+    'idEstadio', 'nombre', 'pais', 'ciudad', 'emailAdmin', 'fechaAsignacion',
+    'idSector', 'estadio', 'codigo', 'capacidadMaxima', 'costoEntrada',
+    'idEvento', 'nombreEvento', 'fecha', 'hora', 'equipos',
+    'tipo', 'idReferencia', 'referencia', 'detalle',
+  ];
+
+  function sortHeaders(headers) {
+    const rank = (header) => {
+      const priority = headerPriority.indexOf(header);
+      return priority === -1 ? 999 + header.localeCompare('') : priority;
+    };
+
+    return [...headers].sort((left, right) => {
+      const rankDiff = rank(left) - rank(right);
+      return rankDiff !== 0 ? rankDiff : left.localeCompare(right);
+    });
+  }
+
+  function renderTable(rows) {
+    if (!rows || !rows.length) {
+      return '<div class="small-note">No hay eventos cargados todavía.</div>';
+    }
+
+    const headers = sortHeaders(Object.keys(rows[0]));
+    const head = headers.map((header) => `<th>${header}</th>`).join('');
+    const body = rows.map((row) => {
+      const cells = headers.map((header) => `<td>${row[header] ?? ''}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    return `
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>${head}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  async function cargarEventos() {
+    try {
+      const data = await requestJSON('/eventos');
+      document.getElementById('resEventos').innerHTML = renderTable(data.eventos);
+
+      const eventos = data.eventos || [];
+      const options = eventos.map((evento) => `<option value="${evento.idEvento}">${evento.idEvento} | ${evento.nombreEvento}</option>`).join('');
+      ee_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
+      es_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
+      ee_idEvento.onchange = cargarEquiposDisponibles;
+      es_idEvento.onchange = cargarSectoresDisponiblesEvento;
+
+      if (eventos.length) {
+        if (!ee_idEvento.value) {
+          ee_idEvento.value = String(eventos[0].idEvento);
+          cargarEquiposDisponibles();
+        }
+        if (!es_idEvento.value) {
+          es_idEvento.value = String(eventos[0].idEvento);
+          cargarSectoresDisponiblesEvento();
+        }
+      }
+    } catch (error) {
+      fill('resEventos', error.message);
+    }
+  }
+
+  async function cargarEstadios() {
+    try {
+      const data = await requestJSON('/estadios');
+      document.getElementById('resEstadios').innerHTML = renderTable(data.estadios);
+
+      const estadios = data.estadios || [];
+      const options = estadios.map((estadio) => `<option value="${estadio.idEstadio}">${estadio.idEstadio} | ${estadio.nombre}</option>`).join('');
+      sec_idEstadio.innerHTML = '<option value="">Selecciona un estadio</option>' + options;
+      ev_idEstadio.innerHTML = '<option value="">Selecciona un estadio</option>' + options;
+      sec_idEstadio.onchange = cargarCodigosDisponibles;
+
+      if (estadios.length) {
+        if (!sec_idEstadio.value) {
+          sec_idEstadio.value = String(estadios[0].idEstadio);
+          cargarCodigosDisponibles();
+        }
+        if (!ev_idEstadio.value) {
+          ev_idEstadio.value = String(estadios[0].idEstadio);
+        }
+      }
+    } catch (error) {
+      fill('resEstadios', error.message);
+    }
+  }
+
+  async function cargarSectores() {
+    try {
+      const data = await requestJSON('/sectores');
+      document.getElementById('resSectores').innerHTML = renderTable(data.sectores);
+    } catch (error) {
+      fill('resSectores', error.message);
+    }
+  }
+
+  async function cargarVinculaciones() {
+    try {
+      const data = await requestJSON('/vinculaciones');
+      document.getElementById('resVinculaciones').innerHTML = renderTable(data.vinculaciones);
+    } catch (error) {
+      fill('resVinculaciones', error.message);
+    }
+  }
+
+  async function cargarCodigosDisponibles() {
+    const idEstadio = sec_idEstadio.value;
+    if (!idEstadio) {
+      sec_codigo.innerHTML = '<option value="">Selecciona un estadio primero</option>';
+      return;
+    }
+
+    try {
+      const data = await requestJSON(`/estadios/${idEstadio}/codigos-disponibles`);
+      const codigos = data.codigos || [];
+      sec_codigo.innerHTML = codigos.length
+        ? '<option value="">Selecciona un código</option>' + codigos.map((codigo) => `<option value="${codigo.codigo}">${codigo.codigo}</option>`).join('')
+        : '<option value="">No hay códigos disponibles</option>';
+
+      if (codigos.length && !sec_codigo.value) {
+        sec_codigo.value = codigos[0].codigo;
+      }
+    } catch (error) {
+      sec_codigo.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarEquiposDisponibles() {
+    const idEvento = ee_idEvento.value;
+    if (!idEvento) {
+      ee_idEquipo.innerHTML = '<option value="">Selecciona un evento primero</option>';
+      return;
+    }
+
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/equipos-disponibles`);
+      const equipos = data.equipos || [];
+      ee_idEquipo.innerHTML = equipos.length
+        ? '<option value="">Selecciona un equipo</option>' + equipos.map((equipo) => `<option value="${equipo.idEquipo}">${equipo.nombre} (${equipo.paisOrigen})</option>`).join('')
+        : '<option value="">No hay equipos disponibles</option>';
+
+      if (equipos.length && !ee_idEquipo.value) {
+        ee_idEquipo.value = String(equipos[0].idEquipo);
+      }
+    } catch (error) {
+      ee_idEquipo.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarSectoresDisponiblesEvento() {
+    const idEvento = es_idEvento.value;
+    if (!idEvento) {
+      es_idSector.innerHTML = '<option value="">Selecciona un evento primero</option>';
+      return;
+    }
+
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/sectores-disponibles`);
+      const sectores = data.sectores || [];
+      es_idSector.innerHTML = sectores.length
+        ? '<option value="">Selecciona un sector</option>' + sectores.map((sector) => `<option value="${sector.idSector}">Sector ${sector.codigo} | ID ${sector.idSector}</option>`).join('')
+        : '<option value="">No hay sectores disponibles</option>';
+
+      if (sectores.length && !es_idSector.value) {
+        es_idSector.value = String(sectores[0].idSector);
+      }
+    } catch (error) {
+      es_idSector.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function crearEstadio() {
+    try {
+      const respuesta = await post('/estadio', {
+        nombre: est_nombre.value,
+        pais: est_pais.value,
+        ciudad: est_ciudad.value,
+        emailAdmin: est_emailAdmin.value,
+        fechaAsignacion: est_fechaAsignacion.value,
+      });
+
+      fill('resEstadio', { mensaje: 'Estadio creado correctamente', idEstadio: respuesta.idEstadio });
+      await cargarEstadios();
+    } catch (error) {
+      fill('resEstadio', error.message);
+    }
+  }
+
+  async function crearSector() {
+    try {
+      const respuesta = await post('/sector', {
+        idEstadio: sec_idEstadio.value,
+        codigo: sec_codigo.value,
+        capacidadMaxima: sec_capacidad.value,
+        costoEntrada: sec_costo.value,
+      });
+
+      fill('resSector', { mensaje: 'Sector creado correctamente', idSector: respuesta.idSector });
+      await cargarEstadios();
+      await cargarSectores();
+    } catch (error) {
+      fill('resSector', error.message);
+    }
+  }
+
+  async function crearEvento() {
+    try {
+      const respuesta = await post('/evento', {
+        nombreEvento: ev_nombre.value,
+        fecha: ev_fecha.value,
+        hora: ev_hora.value,
+        idEstadio: ev_idEstadio.value,
+        emailAdmin: ev_emailAdmin.value,
+      });
+
+      fill('resEvento', { mensaje: 'Evento creado correctamente', idEvento: respuesta.idEvento });
+      await cargarEventos();
+    } catch (error) {
+      fill('resEvento', error.message);
+    }
+  }
+
+  async function vincularEquipo() {
+    try {
+      const respuesta = await post('/evento/equipo', {
+        idEvento: ee_idEvento.value,
+        idEquipo: ee_idEquipo.value,
+        rol: ee_rol.value,
+      });
+
+      fill('resVinculos', { mensaje: 'Equipo vinculado correctamente', vinculado: respuesta.vinculado });
+      await cargarEventos();
+      await cargarEquiposDisponibles();
+    } catch (error) {
+      fill('resVinculos', error.message);
+    }
+  }
+
+  async function habilitarSector() {
+    try {
+      const respuesta = await post('/evento/sector', {
+        idEvento: es_idEvento.value,
+        idSector: es_idSector.value,
+      });
+
+      fill('resVinculos', { mensaje: 'Sector habilitado correctamente', habilitado: respuesta.habilitado });
+      await cargarEventos();
+      await cargarSectoresDisponiblesEvento();
+    } catch (error) {
+      fill('resVinculos', error.message);
+    }
+  }
+
+  cargarEventos();
+  cargarEstadios();
+  cargarSectores();
+  cargarVinculaciones();
+
+  const sessionEmail = {{ (session_email or '')|tojson }};
+  if (sessionEmail) {
+    const adminFields = [est_emailAdmin, ev_emailAdmin];
+    adminFields.forEach((field) => {
+      if (field && !field.value) {
+        field.value = sessionEmail;
+      }
+    });
+  }
+
+  if (sessionRoles.admin) {
+    if (!ee_rol.value) {
+      ee_rol.value = 'local';
+    }
+  }
+
+  if (sessionRoles.admin) {
+    cargarCodigosDisponibles();
+    cargarEquiposDisponibles();
+    cargarSectoresDisponiblesEvento();
+  }
+</script>
+{% endblock %}

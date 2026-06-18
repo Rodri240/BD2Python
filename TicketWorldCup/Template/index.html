@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card">
+    <p class="eyebrow">Ticket World Cup</p>
+    <h1>Demo web para validar toda la letra</h1>
+    <p class="hero-copy">
+      Esta aplicación ahora está dividida en páginas reales. Desde el header podés entrar a registro, perfil,
+      infraestructura, compras, transferencias, validación y consultas, con la misma lógica SQL detrás.
+    </p>
+    <div class="badge-row">
+      <span class="badge">Compra máx. 5 entradas</span>
+      <span class="badge">Transferencia máx. 3 veces</span>
+      <span class="badge">QR expira cada 30 s</span>
+      <span class="badge">Navegación por páginas reales</span>
+    </div>
+    <div class="actions" style="margin-top:18px;">
+      <a class="btn" href="{{ url_for('registro') }}" style="text-decoration:none;">Ir a registro</a>
+      <a class="btn secondary" href="{{ url_for('compras') }}" style="text-decoration:none;">Ir a compras</a>
+      <a class="btn ghost" href="{{ url_for('consultas') }}" style="text-decoration:none;">Ver reportes</a>
+    </div>
+  </div>
+
+  <div class="side-grid">
+    <div class="metric">
+      <div class="value">8</div>
+      <div class="label">Páginas principales</div>
+    </div>
+    <div class="metric">
+      <div class="value">1</div>
+      <div class="label">Base común compartida</div>
+    </div>
+    <div class="metric">
+      <div class="value">SQL</div>
+      <div class="label">Toda la lógica sigue en la base</div>
+    </div>
+  </div>
+</section>
+{% endblock %}

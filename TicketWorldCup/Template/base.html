@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Ticket World Cup{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(10, 16, 32, 0.84);
+      --panel-2: rgba(15, 23, 42, 0.96);
+      --text: #e5eefb;
+      --muted: #98a6c7;
+      --line: rgba(148, 163, 184, 0.2);
+      --accent: #4fd1c5;
+      --accent-2: #f5b971;
+      --danger: #ff7f7f;
+      --ok: #7ee081;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Trebuchet MS", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(79, 209, 197, 0.22), transparent 30%),
+        radial-gradient(circle at top right, rgba(245, 185, 113, 0.16), transparent 25%),
+        linear-gradient(180deg, #050816 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: min(1400px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin-bottom: 18px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      background: rgba(5, 8, 22, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.92rem;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(148, 163, 184, 0.08);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      transform: translateY(-1px);
+      background: rgba(79, 209, 197, 0.14);
+    }
+
+    .session-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .session-chip strong {
+      color: var(--accent);
+    }
+
+    .logout-form {
+      margin: 0;
+    }
+
+    .logout-form button {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      border-radius: 999px;
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+
+    .login-link {
+      text-decoration: none;
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    .page-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hero-card,
+    .panel,
+    .metric,
+    .list-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero-card {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+      min-height: 240px;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -90px auto;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79,209,197,0.25), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      color: var(--accent);
+      font-size: 0.78rem;
+      margin: 0 0 10px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      font-size: clamp(2rem, 4vw, 4rem);
+      margin-bottom: 12px;
+      line-height: 1.02;
+      max-width: 11ch;
+    }
+
+    .hero-copy {
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+
+    .side-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .metric {
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(15,23,42,0.96), rgba(8,12,24,0.95));
+    }
+
+    .metric .value { font-size: 1.7rem; font-weight: 700; }
+    .metric .label { color: var(--muted); font-size: 0.92rem; }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .result {
+      margin-top: 14px;
+      background: rgba(2, 6, 23, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 62px;
+      white-space: pre-wrap;
+      color: #dce7fb;
+    }
+
+    .subgrid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .list-card {
+      padding: 16px;
+    }
+
+    input, select, textarea, .readout {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(2, 6, 23, 0.65);
+      color: var(--text);
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    textarea { min-height: 92px; resize: vertical; }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: #06111f;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #9ff4eb);
+    }
+
+    .btn.secondary { background: linear-gradient(135deg, var(--accent-2), #f7d2a3); }
+    .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .btn.danger { background: linear-gradient(135deg, #ff7f7f, #ffb3b3); }
+
+    .small-note { color: var(--muted); font-size: 0.9rem; }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(79, 209, 197, 0.12);
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { color: var(--muted); font-weight: 600; }
+
+    @media (max-width: 1080px) {
+      .page-grid, .subgrid, .form-grid { grid-template-columns: 1fr; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .nav-links { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <strong>Ticket World Cup</strong>
+        <span>Demo funcional para revisar la letra</span>
+      </div>
+      {% if session_email %}
+      <div class="session-chip">
+        <span>Sesión activa: <strong>{{ session_email }}</strong></span>
+        <nav class="nav-links" aria-label="Navegación principal">
+          <a href="{{ url_for('home') }}">Inicio</a>
+          <a href="{{ url_for('registro') }}">Registro</a>
+          <a href="{{ url_for('perfil') }}">Perfil</a>
+          <a href="{{ url_for('infraestructura') }}">Infraestructura</a>
+          <a href="{{ url_for('compras') }}">Compras</a>
+          <a href="{{ url_for('transferencias') }}">Transferencias</a>
+          <a href="{{ url_for('validacion') }}">Validación</a>
+          <a href="{{ url_for('consultas') }}">Consultas</a>
+        </nav>
+        <form class="logout-form" action="{{ url_for('logout') }}" method="post">
+          <button type="submit">Salir</button>
+        </form>
+      </div>
+      {% else %}
+      <a class="login-link" href="{{ url_for('login') }}">Acceder</a>
+      {% endif %}
+    </header>
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script>
+    const escapeHtml = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+
+    function renderJson(value) {
+      if (value === null || value === undefined) {
+        return '<span class="small-note">sin datos</span>';
+      }
+
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return escapeHtml(value);
+      }
+
+      if (Array.isArray(value)) {
+        if (!value.length) {
+          return '<span class="small-note">sin datos</span>';
+        }
+
+        const headers = [...new Set(value.flatMap((item) => (item && typeof item === 'object' && !Array.isArray(item)) ? Object.keys(item) : []))];
+        if (!headers.length) {
+          return `<ul>${value.map((item) => `<li>${renderJson(item)}</li>`).join('')}</ul>`;
+        }
+
+        const head = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join('');
+        const body = value.map((row) => {
+          const cells = headers.map((header) => `<td>${renderJson(row?.[header])}</td>`).join('');
+          return `<tr>${cells}</tr>`;
+        }).join('');
+
+        return `<div style="overflow-x:auto;"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+      }
+
+      if (typeof value === 'object') {
+        const entries = Object.entries(value);
+        if (!entries.length) {
+          return '<span class="small-note">sin datos</span>';
+        }
+
+        const rows = entries.map(([key, item]) => `
+          <tr>
+            <th>${escapeHtml(key)}</th>
+            <td>${renderJson(item)}</td>
+          </tr>
+        `).join('');
+
+        return `<div style="overflow-x:auto;"><table><tbody>${rows}</tbody></table></div>`;
+      }
+
+      return escapeHtml(String(value));
+    }
+
+    async function requestJSON(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      const data = await response.json();
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    async function post(url, body) {
+      return requestJSON(url, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+    }
+
+    function fill(el, value) {
+      document.getElementById(el).innerHTML = renderJson(value);
+    }
+
+    async function setSession() {
+      try {
+        const email = document.getElementById('sessionEmail').value.trim();
+        const data = await post('/sesion', { email });
+        const sessionUser = document.getElementById('sessionUser');
+        if (sessionUser) sessionUser.textContent = data.user_email;
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    async function clearSession() {
+      await post('/salir', {});
+      const sessionUser = document.getElementById('sessionUser');
+      if (sessionUser) sessionUser.textContent = 'sin sesión';
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

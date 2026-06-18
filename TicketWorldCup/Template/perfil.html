@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid">
+  <div class="hero-card" style="grid-column: 1 / -1;">
+    <p class="eyebrow">Perfil</p>
+    <h1>Sesión y actividad del usuario</h1>
+    <p class="hero-copy">Esta página concentra la sesión de prueba y las consultas del usuario actual: compras, entradas y transferencias.</p>
+    <div class="badge-row">
+      <span class="badge">Usuario actual: <strong id="sessionUser">{{ session_email or 'sin sesión' }}</strong></span>
+      <span class="badge">Acceso directo al perfil</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Sesión activa</h2>
+    <p class="small-note">La autenticación se realiza en la página de acceso y se conserva durante toda la sesión del navegador.</p>
+    <div class="actions">
+      <a class="btn secondary" href="{{ url_for('login') }}" style="text-decoration:none;">Ir al login</a>
+      <form action="{{ url_for('logout') }}" method="post" style="margin:0;">
+        <button class="btn ghost" type="submit">Cerrar sesión</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Resumen del usuario</h2>
+    <div class="actions">
+      <button class="btn secondary" onclick="cargarCompras()">Ver compras</button>
+      <button class="btn secondary" onclick="cargarEntradas()">Ver entradas</button>
+      <button class="btn secondary" onclick="cargarTransferencias()">Ver transferencias</button>
+    </div>
+    <div class="subgrid">
+      <div class="result" id="resCompras"></div>
+      <div class="result" id="resEntradas"></div>
+    </div>
+    <div class="result" id="resTransferencias" style="margin-top: 18px;"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function cargarCompras() {
+    try {
+      const email = {{ (session_email or '')|tojson }};
+      const data = await requestJSON(`/usuario/${email}/compras`);
+      fill('resCompras', data.compras);
+    } catch (error) {
+      fill('resCompras', error.message);
+    }
+  }
+
+  async function cargarEntradas() {
+    try {
+      const email = {{ (session_email or '')|tojson }};
+      const data = await requestJSON(`/usuario/${email}/entradas`);
+      fill('resEntradas', data.entradas);
+    } catch (error) {
+      fill('resEntradas', error.message);
+    }
+  }
+
+  async function cargarTransferencias() {
+    try {
+      const email = {{ (session_email or '')|tojson }};
+      const data = await requestJSON(`/usuario/${email}/transferencias`);
+      fill('resTransferencias', data.transferencias);
+    } catch (error) {
+      fill('resTransferencias', error.message);
+    }
+  }
+</script>
+{% endblock %}
