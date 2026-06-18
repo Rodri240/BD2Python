@@ -1,0 +1,123 @@
+"""
+Funciones para reportes y análisis del sistema.
+"""
+
+try:
+    from .connection import get_db_connection
+except ImportError:
+    from connection import get_db_connection
+
+
+def ranking_eventos_mas_vendidos(limite=10):
+    """
+    Ranking de eventos con más entradas vendidas.
+    
+    Args:
+        limite: Número máximo de resultados a retornar
+        
+    Returns:
+        Lista de diccionarios con información de eventos ordenados por ventas
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+                ev.idEvento,
+                ev.nombreEvento,
+                ev.fecha,
+                ev.hora,
+                COUNT(en.idEntrada) AS entradasVendidas,
+                COALESCE(SUM(v.montoTotal), 0) AS facturacion
+            FROM Evento ev
+            LEFT JOIN Entrada en ON en.idEvento = ev.idEvento
+            LEFT JOIN Venta v ON v.idVenta = en.idVenta
+            GROUP BY ev.idEvento, ev.nombreEvento, ev.fecha, ev.hora
+            ORDER BY entradasVendidas DESC, ev.fecha ASC, ev.hora ASC
+            LIMIT %s
+            """,
+            (limite,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def ranking_mayores_compradores(limite=10):
+    """
+    Ranking de usuarios que más han gastado en entradas.
+    
+    Args:
+        limite: Número máximo de resultados a retornar
+        
+    Returns:
+        Lista de diccionarios con información de compradores ordenados por gasto
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+                v.emailComprador,
+                COUNT(en.idEntrada) AS totalEntradas,
+                COUNT(DISTINCT v.idVenta) AS totalCompras,
+                COALESCE(SUM(v.montoTotal), 0) AS totalGastado
+            FROM Venta v
+            LEFT JOIN Entrada en ON en.idVenta = v.idVenta
+            GROUP BY v.emailComprador
+            ORDER BY totalEntradas DESC, totalGastado DESC
+            LIMIT %s
+            """,
+            (limite,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def cobertura_funcionario_evento(id_evento, email_funcionario):
+    """
+    Reporte de cobertura de un funcionario en un evento.
+    
+    Muestra qué sectores le fueron asignados y cuántos accesos validó en cada uno.
+    
+    Args:
+        id_evento: ID del evento
+        email_funcionario: Email del funcionario
+        
+    Returns:
+        Lista de diccionarios con información de cobertura por sector
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+                af.idSector,
+                s.codigo,
+                COUNT(DISTINCT ve.idValidacion) AS validaciones
+            FROM Asignacion_Funcionario af
+            JOIN Sector s ON s.idSector = af.idSector
+            LEFT JOIN Entrada en ON en.idEvento = af.idEvento AND en.idSector = af.idSector
+            LEFT JOIN Validacion_Entrada ve ON ve.idEntrada = en.idEntrada AND ve.emailFuncionario = af.emailFuncionario
+            WHERE af.idEvento = %s AND af.emailFuncionario = %s
+            GROUP BY af.idSector, s.codigo
+            ORDER BY s.codigo
+            """,
+            (id_evento, email_funcionario),
+        )
+        resultado = cursor.fetchall()
+        
+        # Agregar bandera de cumplimiento
+        for fila in resultado:
+            fila["cumple"] = fila["validaciones"] > 0
+        
+        return resultado
+    finally:
+        cursor.close()
+        conn.close()
