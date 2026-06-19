@@ -98,6 +98,56 @@ def ranking_mayores_compradores(limite=10):
         conn.close()
 
 
+def cobertura_evento_completa(id_evento):
+    """
+    Cobertura de TODOS los funcionarios asignados a un evento.
+    Devuelve una lista agrupada por funcionario con sus sectores y si cumplió.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+                af.emailFuncionario,
+                af.idSector,
+                s.codigo AS sectorCodigo,
+                COUNT(DISTINCT ve.idValidacion) AS validaciones
+            FROM Asignacion_Funcionario af
+            JOIN Sector s ON s.idSector = af.idSector
+            LEFT JOIN Entrada en ON en.idEvento = af.idEvento AND en.idSector = af.idSector
+            LEFT JOIN Validacion_Entrada ve
+                ON ve.idEntrada = en.idEntrada AND ve.emailFuncionario = af.emailFuncionario
+            WHERE af.idEvento = %s
+            GROUP BY af.emailFuncionario, af.idSector, s.codigo
+            ORDER BY af.emailFuncionario, s.codigo
+            """,
+            (id_evento,),
+        )
+        filas = cursor.fetchall()
+
+        # Agrupar por funcionario
+        funcionarios = {}
+        for fila in filas:
+            email = fila["emailFuncionario"]
+            if email not in funcionarios:
+                funcionarios[email] = {"emailFuncionario": email, "sectores": [], "cobertura_completa": True}
+            cumple = fila["validaciones"] > 0
+            funcionarios[email]["sectores"].append({
+                "idSector": fila["idSector"],
+                "sectorCodigo": fila["sectorCodigo"],
+                "validaciones": fila["validaciones"],
+                "cumple": cumple,
+            })
+            if not cumple:
+                funcionarios[email]["cobertura_completa"] = False
+
+        return list(funcionarios.values())
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def cobertura_funcionario_evento(id_evento, email_funcionario):
     """
     Reporte de cobertura de un funcionario en un evento.

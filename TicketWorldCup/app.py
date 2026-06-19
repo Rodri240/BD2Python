@@ -53,6 +53,7 @@ from Database import (
     ranking_eventos_mas_vendidos,
     ranking_mayores_compradores,
     cobertura_funcionario_evento,
+    cobertura_evento_completa,
     listar_funcionarios_evento,
 )
 
@@ -78,6 +79,8 @@ PAGE_ENDPOINTS = {
 
 PUBLIC_ENDPOINTS = {
     "login",
+    "registrarse",
+    "ruta_registro_publico",
     "clear_session_user",
     "static",
 }
@@ -192,6 +195,25 @@ def login():
 @app.route("/registro", methods=["GET"])
 def registro():
     return render_template("registro.html", session_email=session.get("user_email"))
+
+
+@app.route("/registrarse", methods=["GET"])
+def registrarse():
+    if session.get("user_email"):
+        return redirect(url_for("home"))
+    return render_template("registro_publico.html")
+
+
+@app.route("/registrarse", methods=["POST"])
+def ruta_registro_publico():
+    datos = _input_payload()
+    telefonos = datos.get("telefonos", [])
+    if isinstance(telefonos, str):
+        telefonos = [t.strip() for t in telefonos.split(",") if t.strip()]
+    exito = registrar_usuario_general(datos, telefonos)
+    if exito:
+        return _json_ok({"registrado": True})
+    return _json_error("No se pudo completar el registro. Verificá que el email no esté en uso.", 400)
 
 
 @app.route("/perfil", methods=["GET"])
@@ -582,8 +604,8 @@ def ruta_validar_entrada():
     email_func = datos.get("emailFuncionario")
     if email_func:
         asegurar_funcionario(email_func)
-    exito = validar_entrada(datos.get("idToken"), datos.get("idDispositivo"), email_func)
-    return _json_ok({"validada": exito}) if exito else _json_error("No se pudo validar la entrada", 500)
+    exito, err = validar_entrada(datos.get("idToken"), datos.get("idDispositivo"), email_func)
+    return _json_ok({"validada": exito}) if exito else _json_error(err or "No se pudo validar la entrada", 422)
 
 
 @app.route("/funcionarios", methods=["GET"])
@@ -640,6 +662,11 @@ def ruta_asignaciones_funcionario(email):
 @app.route("/funcionario/<string:email>/evento/<int:id_evento>/cobertura", methods=["GET"])
 def ruta_cobertura_funcionario(email, id_evento):
     return _json_ok({"cobertura": cobertura_funcionario_evento(id_evento, email)})
+
+
+@app.route("/eventos/<int:id_evento>/cobertura", methods=["GET"])
+def ruta_cobertura_evento(id_evento):
+    return _json_ok({"cobertura": cobertura_evento_completa(id_evento)})
 
 
 @app.route("/ranking/eventos", methods=["GET"])

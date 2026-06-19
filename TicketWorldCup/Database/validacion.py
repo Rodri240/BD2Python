@@ -117,7 +117,9 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
                 t.tiempoVencimiento,
                 t.estado AS estadoToken,
                 e.estado AS estadoEntrada,
-                e.emailPropietario
+                e.emailPropietario,
+                e.idSector,
+                e.idEvento
             FROM Token_QR t
             JOIN Entrada e ON e.idEntrada = t.idEntrada
             WHERE t.idToken = %s
@@ -128,14 +130,26 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
         token = cursor.fetchone()
         if not token:
             conn.rollback()
-            return False
+            return False, "Token no encontrado"
 
-        # Validar que el token esté activo
         if token["estadoToken"] != "activo":
             conn.rollback()
-            return False
+            return False, "El token QR no está activo o ya fue usado"
 
-        # Validar que el dispositivo y funcionario están registrados
+        # Verificar que el token no haya expirado
+        cursor.execute(
+            """
+            SELECT TIMESTAMPDIFF(SECOND, fechaHoraGenerado, NOW()) AS segundos
+            FROM Token_QR WHERE idToken = %s
+            """,
+            (id_token,),
+        )
+        tiempo = cursor.fetchone()
+        if tiempo and tiempo["segundos"] > token["tiempoVencimiento"]:
+            conn.rollback()
+            return False, "El token QR ha expirado"
+
+        # Verificar que el dispositivo pertenece al funcionario
         cursor.execute(
             """
             SELECT 1
@@ -146,7 +160,20 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
         )
         if cursor.fetchone() is None:
             conn.rollback()
-            return False
+            return False, "El dispositivo no está autorizado para este funcionario"
+
+        # Verificar que el funcionario está asignado al sector de esta entrada
+        cursor.execute(
+            """
+            SELECT 1
+            FROM Asignacion_Funcionario
+            WHERE idEvento = %s AND idSector = %s AND emailFuncionario = %s
+            """,
+            (token["idEvento"], token["idSector"], email_funcionario),
+        )
+        if cursor.fetchone() is None:
+            conn.rollback()
+            return False, "El funcionario no está asignado al sector de esta entrada"
 
         # Registrar la validación
         cursor.execute(
@@ -171,11 +198,11 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
         )
 
         conn.commit()
-        return True
+        return True, None
     except Exception as e:
         conn.rollback()
         print(f"Error validando entrada: {e}")
-        return False
+        return False, "Error interno al validar la entrada"
     finally:
         cursor.close()
         conn.close()

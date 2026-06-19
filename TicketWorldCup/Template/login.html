@@ -28,13 +28,13 @@
         <button class="btn" type="submit"><span class="material-symbols-outlined">login</span> Entrar</button>
         <a class="btn outlined" href="{{ url_for('index') }}"><span class="material-symbols-outlined">home</span> Ver inicio</a>
       </div>
+      <p style="margin-top: 16px; font-size: 0.88rem; color: var(--on-surface-variant);">
+        ¿No tenés cuenta?
+        <a href="{{ url_for('registrarse') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Registrate acá</a>
+      </p>
     </form>
     {% if error %}
     <div class="result">{{ error }}</div>
-    {% else %}
-    <div class="result">
-      Usá un usuario ya cargado en la base para ingresar.
-    </div>
     {% endif %}
   </div>
 </section>
