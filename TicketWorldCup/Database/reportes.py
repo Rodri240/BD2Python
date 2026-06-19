@@ -2,6 +2,25 @@
 Funciones para reportes y análisis del sistema.
 """
 
+
+def listar_funcionarios_evento(id_evento):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT DISTINCT af.emailFuncionario
+            FROM Asignacion_Funcionario af
+            WHERE af.idEvento = %s
+            ORDER BY af.emailFuncionario
+            """,
+            (id_evento,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
 try:
     from .connection import get_db_connection
 except ImportError:

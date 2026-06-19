@@ -12,31 +12,139 @@
       infraestructura, compras, transferencias, validación y consultas, con la misma lógica SQL detrás.
     </p>
     <div class="badge-row">
-      <span class="badge">Compra máx. 5 entradas</span>
-      <span class="badge">Transferencia máx. 3 veces</span>
-      <span class="badge">QR expira cada 30 s</span>
-      <span class="badge">Navegación por páginas reales</span>
+      <span class="badge"><span class="material-symbols-outlined">confirmation_number</span> Compra máx. 5 entradas</span>
+      <span class="badge"><span class="material-symbols-outlined">swap_horiz</span> Transferencia máx. 3 veces</span>
+      <span class="badge"><span class="material-symbols-outlined">qr_code</span> QR expira cada 30 s</span>
+      <span class="badge"><span class="material-symbols-outlined">pages</span> Navegación por páginas reales</span>
     </div>
     <div class="actions" style="margin-top:18px;">
-      <a class="btn" href="{{ url_for('registro') }}" style="text-decoration:none;">Ir a registro</a>
-      <a class="btn secondary" href="{{ url_for('compras') }}" style="text-decoration:none;">Ir a compras</a>
-      <a class="btn ghost" href="{{ url_for('consultas') }}" style="text-decoration:none;">Ver reportes</a>
+      <a class="btn" href="{{ url_for('registro') }}"><span class="material-symbols-outlined">person_add</span> Ir a registro</a>
+      <a class="btn tonal" href="{{ url_for('compras') }}"><span class="material-symbols-outlined">shopping_cart</span> Ir a compras</a>
+      <a class="btn outlined" href="{{ url_for('consultas') }}"><span class="material-symbols-outlined">bar_chart</span> Ver reportes</a>
     </div>
   </div>
 
   <div class="side-grid">
     <div class="metric">
-      <div class="value">8</div>
-      <div class="label">Páginas principales</div>
+      <div class="metric-icon"><span class="material-symbols-outlined">web</span></div>
+      <div class="metric-content">
+        <div class="value">8</div>
+        <div class="label">Páginas principales</div>
+      </div>
     </div>
     <div class="metric">
-      <div class="value">1</div>
-      <div class="label">Base común compartida</div>
+      <div class="metric-icon"><span class="material-symbols-outlined">layers</span></div>
+      <div class="metric-content">
+        <div class="value">1</div>
+        <div class="label">Base común compartida</div>
+      </div>
     </div>
     <div class="metric">
-      <div class="value">SQL</div>
-      <div class="label">Toda la lógica sigue en la base</div>
+      <div class="metric-icon"><span class="material-symbols-outlined">database</span></div>
+      <div class="metric-content">
+        <div class="value">SQL</div>
+        <div class="label">Toda la lógica sigue en la base</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="seccionMisEntradas" style="display:none;grid-column:1/-1;">
+    <div class="panel">
+      <h2>Entradas activas</h2>
+      <p class="small-note" style="margin:-8px 0 12px 0;">Seleccioná una entrada para generar y mostrar su código QR.</p>
+      <div id="resEntradasActivas"><span class="small-note">Cargando...</span></div>
+    </div>
+    <div class="panel">
+      <h2>Entradas consumidas</h2>
+      <div id="resEntradasConsumidas"><span class="small-note">Cargando...</span></div>
     </div>
   </div>
 </section>
+
+<div id="qrModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;" onclick="if(event.target===this)cerrarQR()">
+  <div style="background:var(--surface1);border-radius:12px;padding:24px;min-width:300px;max-width:400px;text-align:center;position:relative;">
+    <button onclick="cerrarQR()" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--text2);cursor:pointer;font-size:1.4rem;">&times;</button>
+    <div id="resQR" style="text-align:center;margin-top:8px;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const sessionEmail = {{ (session_email or '')|tojson }};
+  const sessionRoles = {{ (session_roles or {})|tojson }};
+
+  if (sessionEmail && !sessionRoles.admin && !sessionRoles.funcionario) {
+    document.getElementById('seccionMisEntradas').style.display = 'block';
+    cargarEntradas();
+  }
+
+  async function cargarEntradas() {
+    try {
+      const data = await requestJSON('/usuario/' + encodeURIComponent(sessionEmail) + '/entradas');
+      const entradas = data.entradas || [];
+      renderTablaEntradas('resEntradasActivas', entradas.filter(e => e.estado !== 'consumida'), true);
+      renderTablaEntradas('resEntradasConsumidas', entradas.filter(e => e.estado === 'consumida'), false);
+    } catch (error) {
+      document.getElementById('resEntradasActivas').innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  function renderTablaEntradas(containerId, entradas, mostrarBotonQR) {
+    const el = document.getElementById(containerId);
+    if (!entradas.length) {
+      el.innerHTML = '<span class="small-note">' + (mostrarBotonQR ? 'No tenés entradas activas.' : 'No tenés entradas consumidas.') + '</span>';
+      return;
+    }
+    el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>#</th><th>Evento</th><th>Fecha</th><th>Sector</th><th>Estado</th>' + (mostrarBotonQR ? '<th>Acción</th>' : '') + '</tr></thead><tbody>' +
+      entradas.map(e => `<tr>
+        <td>${e.idEntrada}</td>
+        <td>${escapeHtml(e.nombreEvento)}</td>
+        <td>${e.fecha} ${e.hora || ''}</td>
+        <td>${e.sectorCodigo || 'Sector ' + e.idSector}</td>
+        <td>${e.estado}</td>
+        ${mostrarBotonQR ? `<td><button class="btn" style="padding:4px 12px;font-size:0.82rem;" onclick="mostrarQR(${e.idEntrada})"><span class="material-symbols-outlined" style="font-size:16px;">qr_code</span> Mostrar QR</button></td>` : ''}
+      </tr>`).join('') + '</tbody></table></div>';
+  }
+
+  async function mostrarQR(idEntrada) {
+    const modal = document.getElementById('qrModal');
+    const el = document.getElementById('resQR');
+    modal.style.display = 'flex';
+    modal.dataset.idEntrada = idEntrada;
+    el.innerHTML = '<span class="small-note">Generando QR...</span>';
+    await refrescarQR(idEntrada);
+    if (window._qrInterval) clearInterval(window._qrInterval);
+    window._qrInterval = setInterval(() => refrescarQR(idEntrada), 28000);
+  }
+
+  async function refrescarQR(idEntrada) {
+    const el = document.getElementById('resQR');
+    try {
+      const res = await post('/mi-entrada/' + idEntrada + '/qr', { tiempoVencimiento: 30 });
+      const token = res.token;
+      if (!token) {
+        el.innerHTML = '<span class="small-note">No se pudo generar el QR.</span>';
+        return;
+      }
+      const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(token.valor);
+      el.innerHTML = `
+        <div style="background:#fff;padding:16px;border-radius:8px;margin-bottom:12px;display:inline-block;">
+          <img src="${qrUrl}" alt="QR" style="display:block;width:250px;height:250px;" />
+        </div>
+        <div style="font-size:0.85rem;word-break:break-all;background:var(--surface2);padding:8px 12px;border-radius:6px;">
+          <strong>Token:</strong> ${escapeHtml(token.valor)}
+        </div>
+        <div style="margin-top:8px;"><span class="small-note">Válido por ${token.tiempoVencimiento} segundos — renovando automáticamente</span></div>
+      `;
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  function cerrarQR() {
+    if (window._qrInterval) clearInterval(window._qrInterval);
+    document.getElementById('qrModal').style.display = 'none';
+  }
+</script>
 {% endblock %}

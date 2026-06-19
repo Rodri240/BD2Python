@@ -187,6 +187,7 @@ def listar_entradas_usuario(email_propietario):
                 en.cantTransferencias,
                 en.emailPropietario,
                 en.idSector,
+                sec.codigo AS sectorCodigo,
                 ev.idEvento,
                 ev.nombreEvento,
                 ev.fecha,
@@ -199,6 +200,7 @@ def listar_entradas_usuario(email_propietario):
             JOIN Venta v ON v.idVenta = en.idVenta
             JOIN Evento ev ON ev.idEvento = en.idEvento
             JOIN Estadio s ON s.idEstadio = ev.idEstadio
+            JOIN Sector sec ON sec.idSector = en.idSector
             WHERE en.emailPropietario = %s
             ORDER BY ev.fecha, ev.hora, en.idEntrada
             """,

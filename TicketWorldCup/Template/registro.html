@@ -4,10 +4,10 @@
 
 {% block content %}
 <section class="page-grid">
-  <div class="panel" style="grid-column: 1 / -1;">
+  <div class="hero-card" style="grid-column: 1 / -1;">
     <p class="eyebrow">Registro</p>
-    <h1 style="max-width:none; margin-bottom:8px;">Alta de usuarios por rol</h1>
-    <p class="small-note">Cada usuario debe guardar documento, dirección y contraseña. Los roles se registran en tablas separadas.</p>
+    <h1>Usuarios del sistema</h1>
+    <p class="hero-copy">Creá nuevos usuarios con rol específico, administrá pendientes de validación y actualizá datos de usuarios existentes.</p>
   </div>
 
   <div class="panel">
@@ -15,9 +15,9 @@
     <div class="form-grid">
       <input id="u_email" placeholder="Email" />
       <input id="u_passw" placeholder="Contraseña" type="password" />
-      <input id="u_docPais" placeholder="País documento" />
-      <input id="u_docTipo" placeholder="Tipo documento" />
-      <input id="u_docNumero" placeholder="Número documento" />
+      <input id="u_docPais" placeholder="País doc" />
+      <input id="u_docTipo" placeholder="Tipo doc" />
+      <input id="u_docNumero" placeholder="Número doc" />
       <input id="u_dirPais" placeholder="País dirección" />
       <input id="u_dirLocalidad" placeholder="Localidad" />
       <input id="u_dirCalle" placeholder="Calle" />
@@ -25,7 +25,7 @@
       <input id="u_dirCodigoPostal" placeholder="Código postal" />
       <input id="u_telefonos" class="full" placeholder="Teléfonos separados por coma" />
     </div>
-    <div class="actions"><button class="btn" onclick="registrarGeneral()">Registrar general</button></div>
+    <div class="actions"><button class="btn" onclick="registrarGeneral()"><span class="material-symbols-outlined">person_add</span> Registrar general</button></div>
     <div class="result" id="resGeneral"></div>
   </div>
 
@@ -43,14 +43,14 @@
       <input id="a_dirNumero" placeholder="Número" />
       <input id="a_dirCodigoPostal" placeholder="Código postal" />
       <input id="a_paisJurisdiccion" placeholder="País jurisdicción" />
-      <input id="a_fechaAsignacionCargo" placeholder="Fecha asignación YYYY-MM-DD" />
+      <input id="a_fechaAsignacionCargo" type="date" />
     </div>
-    <div class="actions"><button class="btn secondary" onclick="registrarAdmin()">Registrar administrador</button></div>
+    <div class="actions"><button class="btn tonal" onclick="registrarAdmin()"><span class="material-symbols-outlined">admin_panel_settings</span> Registrar administrador</button></div>
     <div class="result" id="resAdmin"></div>
   </div>
 
-  <div class="panel" style="grid-column: 1 / -1;">
-    <h2>Funcionario de validación</h2>
+  <div class="panel">
+    <h2>Funcionario</h2>
     <div class="form-grid">
       <input id="f_email" placeholder="Email" />
       <input id="f_passw" placeholder="Contraseña" type="password" />
@@ -64,14 +64,64 @@
       <input id="f_dirCodigoPostal" placeholder="Código postal" />
       <input id="f_numeroLegajo" class="full" placeholder="Número de legajo" />
     </div>
-    <div class="actions"><button class="btn secondary" onclick="registrarFuncionario()">Registrar funcionario</button></div>
+    <div class="actions"><button class="btn tonal" onclick="registrarFuncionario()"><span class="material-symbols-outlined">badge</span> Registrar funcionario</button></div>
     <div class="result" id="resFuncionario"></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Buscar y actualizar usuario</h2>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <input id="s_email" placeholder="Email del usuario a buscar" style="flex:1;" />
+      <button class="btn outlined" onclick="buscarUsuario()"><span class="material-symbols-outlined">search</span> Buscar</button>
+    </div>
+    <div id="resBusqueda"></div>
+    <div id="formActualizar" style="display:none;">
+      <div class="form-grid" style="margin-top:16px;">
+        <input id="s_docPais" placeholder="País doc" />
+        <input id="s_docTipo" placeholder="Tipo doc" />
+        <input id="s_docNumero" placeholder="Número doc" />
+        <input id="s_dirPais" placeholder="País dirección" />
+        <input id="s_dirLocalidad" placeholder="Localidad" />
+        <input id="s_dirCalle" placeholder="Calle" />
+        <input id="s_dirNumero" placeholder="Número" />
+        <input id="s_dirCodigoPostal" placeholder="Código postal" />
+        <input id="s_telefonos" class="full" placeholder="Teléfonos separados por coma" />
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn tonal" onclick="guardarUsuario()"><span class="material-symbols-outlined">save</span> Guardar cambios</button>
+      </div>
+      <div class="result" id="resActualizar"></div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);">
+        <p class="small-note" style="margin-bottom:8px;">Administrar permisos:</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="s_rolAdmin" onchange="cambiarRol('admin')" />
+            <span>Administrador</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="s_rolFuncionario" onchange="cambiarRol('funcionario')" />
+            <span>Funcionario</span>
+          </label>
+        </div>
+        <div class="result" id="resRoles"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;" id="panelPendientes">
+    <h2>Usuarios pendientes de validación</h2>
+    <div class="actions" style="margin-bottom:12px;">
+      <button class="btn outlined" onclick="cargarPendientes()"><span class="material-symbols-outlined">refresh</span> Refrescar lista</button>
+    </div>
+    <div id="resPendientes">Cargando...</div>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script>
+  let usuarioActual = null;
+
   async function registrarGeneral() {
     try {
       fill('resGeneral', await post('/registrar/general', {
@@ -132,5 +182,128 @@
       fill('resFuncionario', error.message);
     }
   }
+
+  async function buscarUsuario() {
+    const email = s_email.value.trim();
+    if (!email) { alert('Ingresá un email'); return; }
+    const el = document.getElementById('resBusqueda');
+    try {
+      const data = await requestJSON('/usuario/' + encodeURIComponent(email) + '/datos');
+      usuarioActual = data;
+      el.innerHTML = '<div class="pill" style="margin-bottom:12px;">Usuario encontrado: <strong>' + escapeHtml(data.email) + '</strong></div>';
+
+      s_docPais.value = data.docPais || '';
+      s_docTipo.value = data.docTipo || '';
+      s_docNumero.value = data.docNumero || '';
+      s_dirPais.value = data.dirPais || '';
+      s_dirLocalidad.value = data.dirLocalidad || '';
+      s_dirCalle.value = data.dirCalle || '';
+      s_dirNumero.value = data.dirNumero || '';
+      s_dirCodigoPostal.value = data.dirCodigoPostal || '';
+      s_telefonos.value = (data.telefonos || []).join(', ');
+
+      s_rolAdmin.checked = data.esAdmin;
+      s_rolFuncionario.checked = data.esFuncionario;
+
+      document.getElementById('formActualizar').style.display = 'block';
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">' + escapeHtml(error.message) + '</span>';
+      document.getElementById('formActualizar').style.display = 'none';
+      usuarioActual = null;
+    }
+  }
+
+  async function guardarUsuario() {
+    if (!usuarioActual) return;
+    try {
+      const payload = {
+        docPais: s_docPais.value,
+        docTipo: s_docTipo.value,
+        docNumero: s_docNumero.value,
+        dirPais: s_dirPais.value,
+        dirLocalidad: s_dirLocalidad.value,
+        dirCalle: s_dirCalle.value,
+        dirNumero: s_dirNumero.value,
+        dirCodigoPostal: s_dirCodigoPostal.value,
+        telefonos: s_telefonos.value.split(',').map(t => t.trim()).filter(Boolean),
+      };
+      const res = await requestJSON('/usuario/' + encodeURIComponent(usuarioActual.email) + '/datos', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      fill('resActualizar', { mensaje: 'Datos actualizados correctamente' });
+    } catch (error) {
+      fill('resActualizar', error.message);
+    }
+  }
+
+  async function cambiarRol(rol) {
+    if (!usuarioActual) return;
+    const checkbox = document.getElementById(rol === 'admin' ? 's_rolAdmin' : 's_rolFuncionario');
+    const accion = checkbox.checked ? 'agregar' : 'quitar';
+    try {
+      const payload = { accion: accion, rol: rol };
+      if (rol === 'admin' && accion === 'agregar') {
+        payload.paisJurisdiccion = prompt('País de jurisdicción para el admin:') || '';
+        payload.fechaAsignacionCargo = prompt('Fecha de asignación (YYYY-MM-DD):') || '';
+      }
+      if (rol === 'funcionario' && accion === 'agregar') {
+        payload.numeroLegajo = prompt('Número de legajo (dejá vacío para auto-generar):') || '';
+      }
+      const res = await requestJSON('/usuario/' + encodeURIComponent(usuarioActual.email) + '/roles', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      fill('resRoles', { mensaje: 'Rol ' + (accion === 'agregar' ? 'agregado' : 'quitado') + ' correctamente' });
+    } catch (error) {
+      checkbox.checked = !checkbox.checked;
+      fill('resRoles', error.message);
+    }
+  }
+
+  async function verificarUsuario(email, estado) {
+    try {
+      const res = await post('/usuarios/' + email + '/verificar', { estado });
+      if (res.ok) {
+        cargarPendientes();
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  async function cargarPendientes() {
+    const el = document.getElementById('resPendientes');
+    try {
+      const data = await requestJSON('/usuarios/pendientes');
+      const pendientes = data.pendientes || [];
+      if (!pendientes.length) {
+        el.innerHTML = '<span class="small-note">No hay usuarios pendientes de validación.</span>';
+        return;
+      }
+      const rows = pendientes.map(u => {
+        const emailEnc = encodeURIComponent(u.email);
+        return `<tr>
+          <td>${escapeHtml(u.email)}</td>
+          <td>${escapeHtml(u.docPais)}</td>
+          <td>${escapeHtml(u.docTipo)}</td>
+          <td>${escapeHtml(u.docNumero)}</td>
+          <td>${escapeHtml(u.fechaRegistro)}</td>
+          <td>
+            <button class="btn" style="padding:6px 16px;font-size:0.82rem;" onclick="verificarUsuario('${emailEnc}','verificado')"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span> Verificar</button>
+            <button class="btn danger" style="padding:6px 16px;font-size:0.82rem;" onclick="verificarUsuario('${emailEnc}','rechazado')"><span class="material-symbols-outlined" style="font-size:16px;">cancel</span> Rechazar</button>
+          </td>
+        </tr>`;
+      }).join('');
+      el.innerHTML = `<div style="overflow-x:auto;"><table>
+        <thead><tr><th>Email</th><th>País doc</th><th>Tipo doc</th><th>Número doc</th><th>Fecha registro</th><th>Acción</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Sin permisos de administrador o error al cargar.</span>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', cargarPendientes);
 </script>
 {% endblock %}

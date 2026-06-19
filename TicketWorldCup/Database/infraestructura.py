@@ -4,8 +4,10 @@ Funciones para la gestión de infraestructura: estadios y sectores.
 
 try:
     from .connection import get_db_connection
+    from .utils import interpretar_error_db
 except ImportError:
     from connection import get_db_connection
+    from utils import interpretar_error_db
 
 
 # ============================================================================
@@ -13,19 +15,6 @@ except ImportError:
 # ============================================================================
 
 def crear_estadio(nombre, pais, ciudad, email_admin, fecha_asignacion):
-    """
-    Crea un nuevo estadio en la base de datos.
-    
-    Args:
-        nombre: Nombre del estadio
-        pais: País donde se ubica
-        ciudad: Ciudad del estadio
-        email_admin: Email del administrador responsable
-        fecha_asignacion: Fecha de asignación al administrador
-        
-    Returns:
-        ID del estadio creado, o False si hay error
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -37,11 +26,11 @@ def crear_estadio(nombre, pais, ciudad, email_admin, fecha_asignacion):
             (nombre, pais, ciudad, email_admin, fecha_asignacion),
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.lastrowid, None
     except Exception as e:
         conn.rollback()
-        print(f"Error creando estadio: {e}")
-        return False
+        err = _interpretar_error_db(e, "estadio")
+        return False, err
     finally:
         cursor.close()
         conn.close()
@@ -81,18 +70,6 @@ def listar_estadios():
 # ============================================================================
 
 def crear_sector(id_estadio, codigo, capacidad_maxima, costo_entrada):
-    """
-    Crea un nuevo sector dentro de un estadio.
-    
-    Args:
-        id_estadio: ID del estadio propietario
-        codigo: Código del sector (A, B, C, D)
-        capacidad_maxima: Cantidad máxima de entradas para este sector
-        costo_entrada: Precio de entrada por persona
-        
-    Returns:
-        ID del sector creado, o False si hay error
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -104,11 +81,11 @@ def crear_sector(id_estadio, codigo, capacidad_maxima, costo_entrada):
             (id_estadio, codigo, capacidad_maxima, costo_entrada),
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.lastrowid, None
     except Exception as e:
         conn.rollback()
-        print(f"Error creando sector: {e}")
-        return False
+        err = interpretar_error_db(e, "sector")
+        return False, err
     finally:
         cursor.close()
         conn.close()

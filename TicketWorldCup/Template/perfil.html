@@ -6,47 +6,91 @@
 <section class="page-grid">
   <div class="hero-card" style="grid-column: 1 / -1;">
     <p class="eyebrow">Perfil</p>
-    <h1>Sesión y actividad del usuario</h1>
-    <p class="hero-copy">Esta página concentra la sesión de prueba y las consultas del usuario actual: compras, entradas y transferencias.</p>
+    <h1>Tu actividad</h1>
+    {% set roles = session.get('user_roles', {}) %}
+    {% if roles.get('funcionario') and not roles.get('admin') %}
+    <p class="hero-copy">Estos son los eventos y sectores donde estás asignado como funcionario de validación.</p>
+    {% else %}
+    <p class="hero-copy">Consultá tus compras, entradas y transferencias desde un solo lugar.</p>
+    {% endif %}
     <div class="badge-row">
-      <span class="badge">Usuario actual: <strong id="sessionUser">{{ session_email or 'sin sesión' }}</strong></span>
-      <span class="badge">Acceso directo al perfil</span>
+      <span class="badge"><span class="material-symbols-outlined">account_circle</span> <strong id="sessionUser">{{ session_email or 'sin sesión' }}</strong></span>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Sesión activa</h2>
-    <p class="small-note">La autenticación se realiza en la página de acceso y se conserva durante toda la sesión del navegador.</p>
-    <div class="actions">
-      <a class="btn secondary" href="{{ url_for('login') }}" style="text-decoration:none;">Ir al login</a>
+  <div class="panel" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="material-symbols-outlined" style="color:var(--md-on-surface-variant);">manage_accounts</span>
+      <span style="color:var(--md-on-surface-variant);font-size:0.9rem;">{{ session_email or 'sin sesión' }}</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a class="btn tonal" href="{{ url_for('login') }}" style="display:flex;align-items:center;gap:6px;padding:8px 16px;"><span class="material-symbols-outlined" style="font-size:18px;">login</span> Login</a>
       <form action="{{ url_for('logout') }}" method="post" style="margin:0;">
-        <button class="btn ghost" type="submit">Cerrar sesión</button>
+        <button class="btn outlined" type="submit" style="display:flex;align-items:center;gap:6px;padding:8px 16px;"><span class="material-symbols-outlined" style="font-size:18px;">logout</span> Cerrar sesión</button>
       </form>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Resumen del usuario</h2>
-    <div class="actions">
-      <button class="btn secondary" onclick="cargarCompras()">Ver compras</button>
-      <button class="btn secondary" onclick="cargarEntradas()">Ver entradas</button>
-      <button class="btn secondary" onclick="cargarTransferencias()">Ver transferencias</button>
-    </div>
-    <div class="subgrid">
-      <div class="result" id="resCompras"></div>
-      <div class="result" id="resEntradas"></div>
-    </div>
-    <div class="result" id="resTransferencias" style="margin-top: 18px;"></div>
+  {% if roles.get('funcionario') and not roles.get('admin') %}
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>Mis sectores asignados</h2>
+    <div class="result" id="resSectoresAsignados">Cargando...</div>
   </div>
+  {% else %}
+  <div class="panel list-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0;">Compras</h2>
+      <button class="btn tonal" onclick="cargarCompras()" style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:18px;">receipt_long</span> Cargar</button>
+    </div>
+    <div class="result" id="resCompras"><span class="small-note">Presioná "Cargar" para ver tus compras.</span></div>
+  </div>
+
+  <div class="panel list-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0;">Entradas</h2>
+      <button class="btn tonal" onclick="cargarEntradas()" style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:18px;">confirmation_number</span> Cargar</button>
+    </div>
+    <div class="result" id="resEntradas"><span class="small-note">Presioná "Cargar" para ver tus entradas.</span></div>
+  </div>
+
+  <div class="panel list-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0;">Transferencias</h2>
+      <button class="btn tonal" onclick="cargarTransferencias()" style="display:flex;align-items:center;gap:6px;"><span class="material-symbols-outlined" style="font-size:18px;">swap_horiz</span> Cargar</button>
+    </div>
+    <div class="result" id="resTransferencias"><span class="small-note">Presioná "Cargar" para ver tus transferencias.</span></div>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script>
+  {% set roles = session.get('user_roles', {}) %}
+  const sesEmail = {{ (session_email or '')|tojson }};
+
+  {% if roles.get('funcionario') and not roles.get('admin') %}
+  async function cargarSectoresAsignados() {
+    try {
+      const data = await requestJSON('/funcionario/' + encodeURIComponent(sesEmail) + '/asignaciones');
+      const rows = data.asignaciones || [];
+      const el = document.getElementById('resSectoresAsignados');
+      if (!rows.length) {
+        el.innerHTML = '<span class="small-note">No tenés sectores asignados todavía.</span>';
+        return;
+      }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>Evento</th><th>Fecha</th><th>Hora</th><th>Estadio</th><th>Sector</th></tr></thead><tbody>' +
+        rows.map(r => `<tr><td>${escapeHtml(r.nombreEvento)}</td><td>${escapeHtml(r.fecha)}</td><td>${escapeHtml(r.hora)}</td><td>${escapeHtml(r.estadio)}</td><td>${r.sectorCodigo}</td></tr>`).join('') +
+        '</tbody></table></div>';
+    } catch (error) {
+      document.getElementById('resSectoresAsignados').innerHTML = '<span class="small-note">Error al cargar: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+  cargarSectoresAsignados();
+  {% else %}
   async function cargarCompras() {
     try {
-      const email = {{ (session_email or '')|tojson }};
-      const data = await requestJSON(`/usuario/${email}/compras`);
+      const data = await requestJSON('/usuario/' + sesEmail + '/compras');
       fill('resCompras', data.compras);
     } catch (error) {
       fill('resCompras', error.message);
@@ -55,8 +99,7 @@
 
   async function cargarEntradas() {
     try {
-      const email = {{ (session_email or '')|tojson }};
-      const data = await requestJSON(`/usuario/${email}/entradas`);
+      const data = await requestJSON('/usuario/' + sesEmail + '/entradas');
       fill('resEntradas', data.entradas);
     } catch (error) {
       fill('resEntradas', error.message);
@@ -65,12 +108,12 @@
 
   async function cargarTransferencias() {
     try {
-      const email = {{ (session_email or '')|tojson }};
-      const data = await requestJSON(`/usuario/${email}/transferencias`);
+      const data = await requestJSON('/usuario/' + sesEmail + '/transferencias');
       fill('resTransferencias', data.transferencias);
     } catch (error) {
       fill('resTransferencias', error.message);
     }
   }
+  {% endif %}
 </script>
 {% endblock %}

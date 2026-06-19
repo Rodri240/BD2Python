@@ -6,6 +6,11 @@ from collections import defaultdict
 from hashlib import sha256
 
 try:
+    from mysql.connector.errors import DataError, IntegrityError
+except ImportError:
+    DataError = IntegrityError = Exception
+
+try:
     from .connection import get_db_connection
 except ImportError:
     from connection import get_db_connection
@@ -87,3 +92,28 @@ def obtener_tasa_comision_actual(cursor):
     if not tasa:
         return 0.05
     return float(tasa["porcentaje"]) / 100.0
+
+
+def interpretar_error_db(exc, entidad):
+    if isinstance(exc, IntegrityError):
+        errno = getattr(exc, "errno", 0)
+        if errno == 1452:
+            return f"El {entidad} referencia un registro inexistente (FK)"
+        if errno == 1062:
+            return f"Ya existe un {entidad} con esos datos (duplicado)"
+        if errno == 1406:
+            return f"Datos demasiado largos para el {entidad}"
+        return f"Error de integridad al crear {entidad}"
+    if isinstance(exc, DataError):
+        errno = getattr(exc, "errno", 0)
+        if errno == 1292:
+            return f"Formato de fecha u hora inválido para {entidad}"
+        return f"Error de datos al crear {entidad}"
+    msg = str(exc)
+    if "foreign key" in msg.lower():
+        return f"El {entidad} referencia un registro inexistente"
+    if "duplicate" in msg.lower():
+        return f"Ya existe un {entidad} con esos datos"
+    if "incorrect date" in msg.lower() or "incorrect time" in msg.lower():
+        return f"Formato de fecha u hora inválido para {entidad}"
+    return f"No se pudo crear el {entidad}"
