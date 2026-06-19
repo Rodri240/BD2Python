@@ -27,7 +27,7 @@
       <input id="r_email" type="email" placeholder="Email *" class="full" />
       <input id="r_passw" type="password" placeholder="Contraseña *" class="full" />
 
-      <input id="r_docPais" placeholder="País del documento *" />
+      <select id="r_docPais" class="select-pais"><option value="">País del documento *</option></select>
       <select id="r_docTipo">
         <option value="">Tipo de documento *</option>
         <option value="CI">Cédula de Identidad (CI)</option>
@@ -37,7 +37,7 @@
       </select>
       <input id="r_docNumero" placeholder="Número de documento *" class="full" />
 
-      <input id="r_dirPais" placeholder="País (dirección) *" />
+      <select id="r_dirPais" class="select-pais"><option value="">País (dirección) *</option></select>
       <input id="r_dirLocalidad" placeholder="Localidad *" />
       <input id="r_dirCalle" placeholder="Calle *" />
       <input id="r_dirNumero" placeholder="Número *" />
@@ -60,6 +60,31 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  const PAISES = [
+    "Uruguay","Argentina","Brasil","Chile","Paraguay","Bolivia","Colombia","Ecuador","Perú","Venezuela",
+    "México","USA","Canadá","Costa Rica","Honduras","Guatemala","El Salvador","Nicaragua","Panamá","Cuba",
+    "República Dominicana","Haití","Jamaica","Trinidad y Tobago","Barbados","Bahamas",
+    "Alemania","Francia","España","Italia","Portugal","Inglaterra","Países Bajos","Bélgica","Suiza","Austria",
+    "Polonia","Croacia","Serbia","Eslovenia","Eslovaquia","República Checa","Hungría","Rumanía","Bulgaria","Grecia",
+    "Suecia","Noruega","Dinamarca","Finlandia","Islandia","Irlanda","Escocia","Gales",
+    "Rusia","Ucrania","Turquía","Georgia","Armenia","Azerbaiyán",
+    "Marruecos","Senegal","Nigeria","Camerún","Ghana","Costa de Marfil","Túnez","Argelia","Egipto","Sudáfrica",
+    "Japón","Corea del Sur","Arabia Saudita","Irán","Qatar","Australia","Nueva Zelanda",
+    "China","India","Indonesia","Filipinas","Tailandia","Vietnam","Malasia",
+    "Albania","Andorra","Bosnia y Herzegovina","Bielorrusia","Estonia","Letonia","Lituania","Luxemburgo",
+    "Malta","Moldavia","Montenegro","Macedonia del Norte","San Marino","Kosovo"
+  ].sort((a, b) => a.localeCompare(b, 'es'));
+
+  function poblarSelectPaises() {
+    const opciones = PAISES.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.querySelectorAll('.select-pais').forEach(sel => {
+      sel.innerHTML = sel.options[0].outerHTML + opciones;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', poblarSelectPaises);
+</script>
 <script>
   async function registrarse() {
     const el = document.getElementById('resRegistro');
