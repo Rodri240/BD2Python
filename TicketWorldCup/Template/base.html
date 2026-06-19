@@ -72,7 +72,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      flex-wrap: nowrap;
+      gap: 12px;
       background: var(--md-surface);
       border-radius: var(--md-radius-lg);
       box-shadow: var(--md-elevation-2);
@@ -133,16 +134,16 @@
 
     .nav-links {
       display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
+      flex-wrap: nowrap;
+      gap: 2px;
     }
 
     .nav-links a {
       text-decoration: none;
       color: var(--md-on-surface-variant);
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      padding: 8px 14px;
+      padding: 6px 10px;
       border-radius: var(--md-radius-full);
       transition: background 0.15s ease, color 0.15s ease;
     }
