@@ -10,8 +10,8 @@ CREATE TABLE Usuario (
 					    dirCodigoPostal     VARCHAR(20)    NOT NULL,
 						passw VARCHAR(64) NOT NULL,
  
-	CONSTRAINT PK_Usuario    PRIMARY KEY (email),
-	CONSTRAINT UQ_Documento  UNIQUE (docPais, docTipo, docNumero)
+    CONSTRAINT PK_Usuario    PRIMARY KEY (email),
+    CONSTRAINT UQ_Documento  UNIQUE (dirPais, docTipo, docNumero)
 );
 
 
@@ -270,10 +270,6 @@ CREATE TABLE Tasa_Comision (
 );
 
 
-INSERT INTO Tasa_Comision (porcentaje, fechaDesde, fechaHasta) VALUES
-(5.00, '2025-01-01', NULL);
-
-
 --INSERTS
 
 
@@ -331,7 +327,7 @@ INSERT INTO Estadio (nombre, pais, ciudad, emailAdmin, fechaAsignacion) VALUES
 ('SoFi Stadium',            'USA',    'Los Angeles',     'admin.usa@fifa.com', '2025-02-01'),  
 ('MetLife Stadium',         'USA',    'New York',        'admin.usa@fifa.com', '2025-02-01'), 
 ('AT&T Stadium',            'USA',    'Dallas',          'admin.usa@fifa.com', '2025-02-01'),  
-('Levis Stadium',         'USA',    'San Francisco',   'admin.usa@fifa.com', '2025-02-01'),  
+('Levi\'s Stadium',         'USA',    'San Francisco',   'admin.usa@fifa.com', '2025-02-01'),  
 ('Estadio Azteca',          'Mexico', 'Ciudad de Mexico','admin.mex@fifa.com', '2025-02-05'),  
 ('Estadio BBVA',            'Mexico', 'Monterrey',       'admin.mex@fifa.com', '2025-02-05'), 
 ('Estadio Akron',           'Mexico', 'Guadalajara',     'admin.mex@fifa.com', '2025-02-05'),  
