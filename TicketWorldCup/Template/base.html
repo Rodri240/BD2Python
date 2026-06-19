@@ -482,10 +482,6 @@
       </div>
       {% if session_email %}
       <div class="session-area">
-        <span class="session-chip">
-          <span class="material-symbols-outlined">account_circle</span>
-          <strong>{{ session_email }}</strong>
-        </span>
         <nav class="nav-links" aria-label="Navegación principal">
           {% set roles = session.get('user_roles', {}) %}
           {% if roles.get('admin') %}
@@ -508,6 +504,10 @@
           <a href="{{ url_for('consultas') }}">Consultas</a>
           {% endif %}
         </nav>
+        <span class="session-chip">
+          <span class="material-symbols-outlined">account_circle</span>
+          <strong>{{ session_email }}</strong>
+        </span>
         <form class="logout-form" action="{{ url_for('logout') }}" method="post">
           <button type="submit"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Salir</button>
         </form>
