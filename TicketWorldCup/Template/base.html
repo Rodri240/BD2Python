@@ -508,6 +508,14 @@
         <span class="session-chip">
           <span class="material-symbols-outlined">account_circle</span>
           <strong>{{ session_email }}</strong>
+          {% set roles = session.get('user_roles', {}) %}
+          {% if roles.get('admin') %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-primary);color:var(--md-on-primary);padding:2px 8px;border-radius:999px;">Admin</span>
+          {% elif roles.get('funcionario') %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-secondary-container);color:var(--md-on-secondary-container);padding:2px 8px;border-radius:999px;">Funcionario</span>
+          {% else %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-surface-variant);color:var(--md-on-surface-variant);padding:2px 8px;border-radius:999px;">Usuario</span>
+          {% endif %}
         </span>
         <form class="logout-form" action="{{ url_for('logout') }}" method="post">
           <button type="submit"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Salir</button>

@@ -119,11 +119,7 @@
         cantidad: c_cantidad.value,
       });
 
-      fill('resCompra', {
-        mensaje: 'Compra registrada correctamente',
-        idVenta: respuesta.idVenta,
-        compra: respuesta.compra,
-      });
+      fill('resCompra', { mensaje: `Compra registrada correctamente. N° de venta: ${respuesta.idVenta}` });
 
       c_cantidad.value = '';
       await cargarSectoresCompra(c_idEvento.value);
