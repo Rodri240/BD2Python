@@ -505,17 +505,26 @@ def actualizar_roles_usuario(email, roles):
             tabla = "Funcionario_Validacion"
 
         if accion == "agregar":
-            cursor.execute(
-                f"INSERT IGNORE INTO {tabla} (email, paisJurisdiccion, fechaAsignacionCargo) "
-                "VALUES (%s, %s, %s)"
-                if rol == "admin" else
-                f"INSERT IGNORE INTO {tabla} (email, numeroLegajo) VALUES (%s, %s)",
-                (email, roles.get("paisJurisdiccion", ""), roles.get("fechaAsignacionCargo", ""))
-                if rol == "admin" else
-                (email, roles.get("numeroLegajo", f"AUTO-{uuid.uuid4().hex[:8].upper()}")),
-            )
+            cursor.execute("SELECT 1 FROM {} WHERE email = %s".format(tabla), (email,))
+            if cursor.fetchone():
+                return False, "El usuario ya tiene ese rol asignado"
+
+            if rol == "admin":
+                cursor.execute(
+                    "INSERT INTO Administrador_Pais_Sede (email, paisJurisdiccion, fechaAsignacionCargo) "
+                    "VALUES (%s, %s, %s)",
+                    (email, roles.get("paisJurisdiccion"), roles.get("fechaAsignacionCargo")),
+                )
+            else:
+                numero_legajo = roles.get("numeroLegajo") or f"AUTO-{uuid.uuid4().hex[:8].upper()}"
+                cursor.execute(
+                    "INSERT INTO Funcionario_Validacion (email, numeroLegajo) VALUES (%s, %s)",
+                    (email, numero_legajo),
+                )
         else:
-            cursor.execute(f"DELETE FROM {tabla} WHERE email = %s", (email,))
+            cursor.execute("DELETE FROM {} WHERE email = %s".format(tabla), (email,))
+            if cursor.rowcount == 0:
+                return False, "El usuario no tiene ese rol asignado"
 
         conn.commit()
         return True, None
