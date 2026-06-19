@@ -12,6 +12,19 @@ from .usuarios import (
     registrar_usuario_admin,
     registrar_funcionario_validacion,
     listar_compradores,
+    listar_pendientes_validacion,
+    actualizar_estado_verificacion,
+    asegurar_funcionario,
+    listar_funcionarios,
+    listar_asignaciones_evento,
+    listar_asignaciones_funcionario,
+    asignar_funcionario_sector,
+    eliminar_asignacion_funcionario,
+    obtener_usuario_por_email,
+    obtener_telefonos_usuario,
+    actualizar_usuario,
+    actualizar_telefonos_usuario,
+    actualizar_roles_usuario,
 )
 
 # Infraestructura
@@ -33,6 +46,8 @@ from .eventos import (
     listar_equipos_disponibles_evento,
     listar_sectores_disponibles_evento,
     listar_sectores_evento,
+    listar_entradas_no_validadas_por_evento,
+    listar_entradas_validadas_por_evento,
 )
 
 # Equipos
@@ -43,6 +58,7 @@ from .equipos import (
 # Dispositivos
 from .dispositivos import (
     registrar_dispositivo,
+    listar_dispositivos_por_funcionario,
 )
 
 # Compras
@@ -72,6 +88,12 @@ from .reportes import (
     ranking_eventos_mas_vendidos,
     ranking_mayores_compradores,
     cobertura_funcionario_evento,
+    listar_funcionarios_evento,
+)
+
+# Utilities
+from .utils import (
+    interpretar_error_db,
 )
 
 __all__ = [
@@ -81,6 +103,19 @@ __all__ = [
     "registrar_usuario_admin",
     "registrar_funcionario_validacion",
     "listar_compradores",
+    "listar_pendientes_validacion",
+    "actualizar_estado_verificacion",
+    "asegurar_funcionario",
+    "listar_funcionarios",
+    "listar_asignaciones_evento",
+    "listar_asignaciones_funcionario",
+    "asignar_funcionario_sector",
+    "eliminar_asignacion_funcionario",
+    "obtener_usuario_por_email",
+    "obtener_telefonos_usuario",
+    "actualizar_usuario",
+    "actualizar_telefonos_usuario",
+    "actualizar_roles_usuario",
     # Infraestructura
     "crear_estadio",
     "crear_sector",
@@ -100,6 +135,7 @@ __all__ = [
     "listar_equipos",
     # Dispositivos
     "registrar_dispositivo",
+    "listar_dispositivos_por_funcionario",
     # Compras
     "registrar_venta_y_entradas",
     "ejecutar_transaccion_venta",
@@ -117,4 +153,7 @@ __all__ = [
     "ranking_eventos_mas_vendidos",
     "ranking_mayores_compradores",
     "cobertura_funcionario_evento",
+    "listar_funcionarios_evento",
+    # Utilities
+    "interpretar_error_db",
 ]

@@ -6,89 +6,219 @@
 <section class="page-grid">
   <div class="hero-card" style="grid-column: 1 / -1;">
     <p class="eyebrow">Validación</p>
-    <h1>QR dinámico y acceso</h1>
-    <p class="hero-copy">Aquí se genera el QR, se registra el dispositivo autorizado y se valida la entrada con el funcionario correcto.</p>
+    <h1>Validación de entradas</h1>
+    <p class="hero-copy">Seleccioná un evento, revisá las entradas pendientes y validalas con un dispositivo registrado.</p>
   </div>
 
   <div class="panel">
-    <h2>Registrar dispositivo</h2>
+    <h2>1. Registrar dispositivo</h2>
     <div class="form-grid">
-      <input id="d_dirMAC" placeholder="MAC del dispositivo" />
+      <input id="d_dirMAC" placeholder="AA:BB:CC:DD:EE:FF" pattern="^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$" title="Formato: XX:XX:XX:XX:XX:XX (6 pares hexadecimales separados por :)" />
+      <input id="d_alias" placeholder="Alias (ej: Lector puerta A)" />
       <input id="d_emailFuncionario" placeholder="Email funcionario" />
+      <span></span>
     </div>
-    <div class="actions"><button class="btn secondary" onclick="registrarDispositivo()">Registrar dispositivo</button></div>
+    <div class="actions"><button class="btn tonal" onclick="registrarDispositivo()"><span class="material-symbols-outlined">devices</span> Registrar dispositivo</button></div>
     <div class="result" id="resDispositivo"></div>
-  </div>
-
-  <div class="panel">
-    <h2>Generar QR</h2>
-    <div class="form-grid">
-      <input id="qr_idEntrada" placeholder="ID entrada" />
-      <input id="qr_tiempo" placeholder="Vencimiento segundos" value="30" />
-      <input id="qr_valor" class="full" placeholder="Valor QR opcional" />
-    </div>
-    <div class="actions">
-      <button class="btn" onclick="generarQR()">Generar</button>
-      <button class="btn ghost" onclick="verQRActivo()">Ver QR activo</button>
-    </div>
-    <div class="result" id="resQR"></div>
+    <hr class="panel-separator">
+    <h3 style="margin:0 0 8px 0;font-size:0.9rem;">Dispositivos registrados</h3>
+    <div id="resDispositivosRegistrados"><span class="small-note">Cargando...</span></div>
   </div>
 
   <div class="panel" style="grid-column: 1 / -1;">
-    <h2>Validar entrada</h2>
-    <div class="form-grid">
-      <input id="v_idToken" placeholder="ID token" />
-      <input id="v_idDispositivo" placeholder="ID dispositivo" />
-      <input id="v_emailFuncionario" placeholder="Email funcionario" />
+    <h2>2. Leer QR — entradas pendientes por evento</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+      <select id="le_idEvento" style="flex:2;min-width:200px;">
+        <option value="">Seleccioná un evento</option>
+      </select>
+      <select id="v_idDispositivo" style="flex:1;min-width:160px;"><option value="">Dispositivo...</option></select>
+      <button class="btn outlined" onclick="cargarEntradasPendientes()"><span class="material-symbols-outlined">refresh</span> Cargar</button>
     </div>
-    <div class="actions"><button class="btn danger" onclick="validarEntrada()">Validar</button></div>
-    <div class="result" id="resValidacion"></div>
+    <div class="result" id="resEntradasPendientes"><span class="small-note">Seleccioná un evento, elegí un dispositivo y presioná "Cargar".</span></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>3. Validaciones realizadas</h2>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <select id="va_idEvento" style="flex:1;">
+        <option value="">Seleccioná un evento</option>
+      </select>
+      <button class="btn outlined" onclick="cargarEntradasValidadas()"><span class="material-symbols-outlined">refresh</span> Cargar</button>
+    </div>
+    <div class="result" id="resEntradasValidadas"><span class="small-note">Seleccioná un evento y presioná "Cargar".</span></div>
   </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script>
+  const sessionRoles = {{ (session_roles or {})|tojson }};
+  const sessionEmail = {{ (session_email or '')|tojson }};
+
+  let ultimoIdDispositivo = null;
+  let ultimoEmailFuncionario = null;
+
+  function seleccionarDispositivo(id, email) {
+    ultimoIdDispositivo = id;
+    ultimoEmailFuncionario = email;
+  }
+
+  async function cargarEventos() {
+    try {
+      const data = await requestJSON('/eventos');
+      const eventos = data.eventos || [];
+      if (!eventos.length) return;
+      const opts = '<option value="">Seleccioná un evento</option>' +
+        eventos.map(e => `<option value="${e.idEvento}">${escapeHtml(e.nombreEvento)} — ${escapeHtml(e.fecha)}</option>`).join('');
+      for (const id of ['le_idEvento', 'va_idEvento']) {
+        const sel = document.getElementById(id);
+        sel.innerHTML = opts;
+        if (eventos.length === 1) sel.value = String(eventos[0].idEvento);
+      }
+      document.getElementById('le_idEvento').addEventListener('change', function() {
+        document.getElementById('va_idEvento').value = this.value;
+      });
+    } catch (_) {}
+  }
+
+  async function cargarEntradasPendientes() {
+    const idEvento = document.getElementById('le_idEvento').value;
+    if (!idEvento) { alert('Seleccioná un evento primero'); return; }
+    if (!ultimoIdDispositivo) { alert('Seleccioná un dispositivo primero'); return; }
+    const el = document.getElementById('resEntradasPendientes');
+    try {
+      const data = await requestJSON('/eventos/' + idEvento + '/entradas-no-validadas');
+      const entradas = data.entradas || [];
+      if (!entradas.length) {
+        el.innerHTML = '<span class="small-note">No hay entradas pendientes de validación para este evento.</span>';
+        return;
+      }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>ID</th><th>Propietario</th><th>Sector</th><th>Estado</th><th>Acción</th></tr></thead><tbody>' +
+        entradas.map(e => `<tr>
+          <td>#${e.idEntrada}</td>
+          <td>${escapeHtml(e.emailPropietario)}</td>
+          <td>${e.sectorCodigo}</td>
+          <td>${e.estado}</td>
+          <td><button class="btn" style="padding:4px 12px;font-size:0.82rem;" onclick="leerQRyValidar(${e.idEntrada})"><span class="material-symbols-outlined" style="font-size:16px;">qr_code_scanner</span> Leer QR y validar</button></td>
+        </tr>`).join('') + '</tbody></table></div>';
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  async function leerQRyValidar(idEntrada) {
+    const idEvento = document.getElementById('le_idEvento').value;
+    try {
+      const res = await post('/entrada/' + idEntrada + '/qr', { tiempoVencimiento: 30 });
+      await post('/validar', {
+        idToken: res.idToken,
+        idDispositivo: ultimoIdDispositivo,
+        emailFuncionario: ultimoEmailFuncionario,
+      });
+      await cargarEntradasPendientes();
+      if (idEvento) {
+        document.getElementById('va_idEvento').value = idEvento;
+        await cargarEntradasValidadas(idEvento);
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  async function cargarEntradasValidadas(idEvento) {
+    if (!idEvento) idEvento = document.getElementById('va_idEvento').value;
+    if (!idEvento) { alert('Seleccioná un evento primero'); return; }
+    const el = document.getElementById('resEntradasValidadas');
+    try {
+      const data = await requestJSON('/eventos/' + idEvento + '/entradas-validadas');
+      const entradas = data.entradas || [];
+      if (!entradas.length) {
+        el.innerHTML = '<span class="small-note">No hay validaciones realizadas para este evento.</span>';
+        return;
+      }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>ID</th><th>Propietario</th><th>Sector</th><th>Funcionario</th><th>Dispositivo</th><th>Fecha/Hora</th></tr></thead><tbody>' +
+        entradas.map(e => `<tr>
+          <td>#${e.idEntrada}</td>
+          <td>${escapeHtml(e.emailPropietario)}</td>
+          <td>${e.sectorCodigo}</td>
+          <td>${e.emailFuncionario}</td>
+          <td>${e.dirMAC}</td>
+          <td>${e.fechaHoraValidacion}</td>
+        </tr>`).join('') + '</tbody></table></div>';
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  async function cargarDispositivos() {
+    const sel = document.getElementById('v_idDispositivo');
+    const puedeValidar = sessionRoles.funcionario || sessionRoles.admin;
+    if (!puedeValidar || !sessionEmail) {
+      sel.innerHTML = '<option value="">Sin sesión de funcionario</option>';
+      return;
+    }
+    d_emailFuncionario.value = sessionEmail;
+    try {
+      const data = await requestJSON('/funcionario/' + encodeURIComponent(sessionEmail) + '/dispositivos');
+      const dispositivos = data.dispositivos || [];
+      mostrarDispositivosRegistrados(dispositivos);
+      if (!dispositivos.length) {
+        sel.innerHTML = '<option value="">No hay dispositivos registrados</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">Seleccioná un dispositivo...</option>' +
+        dispositivos.map(d => `<option value="${d.idDispositivo}">${d.alias ? escapeHtml(d.alias) : '#' + d.idDispositivo} — ${d.dirMAC}</option>`).join('');
+      sel.onchange = function() {
+        if (this.value) seleccionarDispositivo(parseInt(this.value), sessionEmail);
+      };
+      if (dispositivos.length === 1) {
+        sel.value = String(dispositivos[0].idDispositivo);
+        seleccionarDispositivo(dispositivos[0].idDispositivo, sessionEmail);
+      }
+    } catch (_) {
+      sel.innerHTML = '<option value="">Error al cargar dispositivos</option>';
+    }
+  }
+
+  function mostrarDispositivosRegistrados(dispositivos) {
+    const el = document.getElementById('resDispositivosRegistrados');
+    if (!dispositivos || !dispositivos.length) {
+      el.innerHTML = '<span class="small-note">No hay dispositivos registrados para este email.</span>';
+      return;
+    }
+    el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>#</th><th>Alias</th><th>Dirección MAC</th></tr></thead><tbody>' +
+      dispositivos.map(d => `<tr><td>${d.idDispositivo}</td><td>${d.alias ? escapeHtml(d.alias) : '-'}</td><td>${d.dirMAC}</td></tr>`).join('') +
+      '</tbody></table></div>';
+  }
+
   async function registrarDispositivo() {
     try {
-      fill('resDispositivo', await post('/dispositivo', {
+      const res = await post('/dispositivo', {
         dirMAC: d_dirMAC.value,
+        alias: d_alias.value || null,
         emailFuncionario: d_emailFuncionario.value,
-      }));
+      });
+      seleccionarDispositivo(res.idDispositivo, res.emailFuncionario);
+      const sel = document.getElementById('v_idDispositivo');
+      const label = (res.alias || '#' + res.idDispositivo) + ' — ' + d_dirMAC.value;
+      const exists = Array.from(sel.options).some(o => o.value === String(res.idDispositivo));
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = res.idDispositivo;
+        opt.textContent = label;
+        sel.appendChild(opt);
+      }
+      sel.value = String(res.idDispositivo);
+      d_alias.value = '';
+      fill('resDispositivo', { mensaje: 'Dispositivo registrado correctamente', idDispositivo: res.idDispositivo });
+      const data = await requestJSON('/funcionario/' + encodeURIComponent(sessionEmail) + '/dispositivos');
+      mostrarDispositivosRegistrados(data.dispositivos || []);
     } catch (error) {
       fill('resDispositivo', error.message);
     }
   }
 
-  async function generarQR() {
-    try {
-      fill('resQR', await post(`/entrada/${qr_idEntrada.value}/qr`, {
-        valor: qr_valor.value,
-        tiempoVencimiento: qr_tiempo.value,
-      }));
-    } catch (error) {
-      fill('resQR', error.message);
-    }
-  }
-
-  async function verQRActivo() {
-    try {
-      fill('resQR', await requestJSON(`/entrada/${qr_idEntrada.value}/qr`));
-    } catch (error) {
-      fill('resQR', error.message);
-    }
-  }
-
-  async function validarEntrada() {
-    try {
-      fill('resValidacion', await post('/validar', {
-        idToken: v_idToken.value,
-        idDispositivo: v_idDispositivo.value,
-        emailFuncionario: v_emailFuncionario.value,
-      }));
-    } catch (error) {
-      fill('resValidacion', error.message);
-    }
-  }
+  cargarEventos();
+  cargarDispositivos();
 </script>
 {% endblock %}

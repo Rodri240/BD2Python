@@ -45,70 +45,58 @@ def listar_transferencias_usuario(email_usuario):
         conn.close()
 
 
-def solicitar_transferencia(id_entrada, email_origen, email_destino):
-    """
-    Solicita la transferencia de una entrada a otro usuario.
-    
-    La entrada puede ser transferida máximo 3 veces.
-    
-    Args:
-        id_entrada: ID de la entrada a transferir
-        email_origen: Email del propietario actual
-        email_destino: Email del nuevo propietario
-        
-    Returns:
-        ID de la transferencia creada, o False si hay error
-    """
+def solicitar_transferencia(email_origen, email_destino, ids_entrada):
+    if not ids_entrada:
+        return False, "No se especificaron entradas para transferir"
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         conn.start_transaction()
 
-        # Validar que la entrada existe y el usuario es propietario
+        placeholders = ", ".join(["%s"] * len(ids_entrada))
         cursor.execute(
-            """
+            f"""
             SELECT idEntrada, emailPropietario, estado, cantTransferencias
             FROM Entrada
-            WHERE idEntrada = %s
+            WHERE idEntrada IN ({placeholders})
             FOR UPDATE
             """,
-            (id_entrada,),
+            ids_entrada,
         )
-        entrada = cursor.fetchone()
-        if not entrada:
-            conn.rollback()
-            return False
+        entradas = cursor.fetchall()
 
-        if entrada["emailPropietario"] != email_origen:
+        if len(entradas) != len(ids_entrada):
             conn.rollback()
-            return False
+            return False, "Alguna de las entradas seleccionadas no existe"
 
-        # Validar que la entrada no esté consumida y no exceda límite de transferencias
-        if entrada["estado"] == "consumida" or entrada["cantTransferencias"] >= 3:
-            conn.rollback()
-            return False
+        ids_creados = []
+        for entrada in entradas:
+            if entrada["emailPropietario"] != email_origen:
+                conn.rollback()
+                return False, f"La entrada {entrada['idEntrada']} no pertenece al usuario origen"
+            if entrada["estado"] != "activa":
+                conn.rollback()
+                return False, f"La entrada {entrada['idEntrada']} no está disponible (estado: {entrada['estado']})"
+            if entrada["cantTransferencias"] >= 3:
+                conn.rollback()
+                return False, f"La entrada {entrada['idEntrada']} ya alcanzó el límite de transferencias"
 
-        # Crear la transferencia
-        cursor.execute(
-            """
-            INSERT INTO Transferencia (idEntrada, emailOrigen, emailDestino, estado)
-            VALUES (%s, %s, %s, 'pendiente')
-            """,
-            (id_entrada, email_origen, email_destino),
-        )
-        
-        # Marcar entrada como transferencia pendiente
-        cursor.execute(
-            "UPDATE Entrada SET estado = 'transferencia_pendiente' WHERE idEntrada = %s",
-            (id_entrada,),
-        )
+            cursor.execute(
+                "INSERT INTO Transferencia (idEntrada, emailOrigen, emailDestino, estado) VALUES (%s, %s, %s, 'pendiente')",
+                (entrada["idEntrada"], email_origen, email_destino),
+            )
+            ids_creados.append(cursor.lastrowid)
+            cursor.execute(
+                "UPDATE Entrada SET estado = 'transferencia_pendiente' WHERE idEntrada = %s",
+                (entrada["idEntrada"],),
+            )
 
         conn.commit()
-        return cursor.lastrowid
+        return ids_creados, None
     except Exception as e:
         conn.rollback()
-        print(f"Error solicitando transferencia: {e}")
-        return False
+        return False, f"Error al solicitar transferencia: {e}"
     finally:
         cursor.close()
         conn.close()

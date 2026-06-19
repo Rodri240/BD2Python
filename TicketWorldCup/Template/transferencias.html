@@ -10,24 +10,38 @@
     <p class="hero-copy">La transferencia queda registrada, se acepta o rechaza, y la entrada cambia de propietario sólo al aceptar.</p>
   </div>
 
-  <div class="panel">
+  <div class="panel" style="grid-column: 1 / -1;">
     <h2>Solicitar transferencia</h2>
     <div class="form-grid">
-      <input id="t_idEntrada" placeholder="ID entrada" />
       <input id="t_emailOrigen" placeholder="Email origen" />
       <input id="t_emailDestino" placeholder="Email destino" />
+      <div class="actions full" style="grid-column: 1 / -1;">
+        <button class="btn outlined" onclick="cargarEntradas()"><span class="material-symbols-outlined">download</span> Cargar entradas del origen</button>
+      </div>
     </div>
-    <div class="actions"><button class="btn" onclick="solicitarTransferencia()">Solicitar</button></div>
+    <div id="t_entradasContainer" class="result" style="min-height:auto;"></div>
+    <div class="actions"><button class="btn" onclick="solicitarTransferencia()" id="btnTransferir" disabled><span class="material-symbols-outlined">send</span> Solicitar transferencia</button></div>
     <div class="result" id="resTransferencia"></div>
   </div>
 
   <div class="panel">
-    <h2>Responder transferencia</h2>
+    <h2>Transferencias pendientes</h2>
+    <p class="small-note">Las transferencias que te llegaron aparecen automáticamente abajo.</p>
+    <div class="result" id="resPendientes"></div>
+  </div>
+
+  <div class="panel" id="panelResponderManual">
+    <h2>Responder transferencia (manual)</h2>
+    <p class="small-note">Si no tenés sesión iniciada, ingresá el ID manualmente.</p>
     <div class="form-grid">
       <input id="rt_idTransferencia" placeholder="ID transferencia" />
-      <input id="rt_estado" placeholder="aceptada / rechazada" />
+      <select id="rt_estado">
+        <option value="">Selecciona estado</option>
+        <option value="aceptada">Aceptar</option>
+        <option value="rechazada">Rechazar</option>
+      </select>
     </div>
-    <div class="actions"><button class="btn secondary" onclick="responderTransferencia()">Responder</button></div>
+    <div class="actions"><button class="btn tonal" onclick="responderTransferencia()"><span class="material-symbols-outlined">reply</span> Responder</button></div>
     <div class="result" id="resRespuestaTransferencia"></div>
   </div>
 </section>
@@ -35,13 +49,108 @@
 
 {% block scripts %}
 <script>
+  let entradasSeleccionadas = new Set();
+
+  const sesEmail = {{ (session_email or '')|tojson }};
+
+  async function cargarPendientes() {
+    if (!sesEmail) {
+      document.getElementById('resPendientes').innerHTML = '<span class="small-note">Iniciá sesión para ver tus transferencias pendientes.</span>';
+      return;
+    }
+    try {
+      const data = await requestJSON('/usuario/' + encodeURIComponent(sesEmail) + '/transferencias');
+      const pendientes = (data.transferencias || []).filter(t => t.estado === 'pendiente');
+      const el = document.getElementById('resPendientes');
+      if (!pendientes.length) {
+        el.innerHTML = '<span class="small-note">No tenés transferencias pendientes.</span>';
+        return;
+      }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>ID</th><th>Entrada</th><th>Origen</th><th>Fecha</th><th>Acción</th></tr></thead><tbody>' +
+        pendientes.map(t => {
+          const f = t.fechaTransferencia ? t.fechaTransferencia.slice(0, 16).replace('T', ' ') : '';
+          return `<tr>
+            <td>${t.idTransferencia}</td>
+            <td>#${t.idEntrada}</td>
+            <td>${escapeHtml(t.emailOrigen)}</td>
+            <td>${f}</td>
+            <td style="display:flex;gap:6px;">
+              <button class="btn" style="padding:4px 12px;font-size:0.82rem;" onclick="responderTransferenciaId(${t.idTransferencia},'aceptada')">Aceptar</button>
+              <button class="btn danger" style="padding:4px 12px;font-size:0.82rem;" onclick="responderTransferenciaId(${t.idTransferencia},'rechazada')">Rechazar</button>
+            </td>
+          </tr>`;
+        }).join('') + '</tbody></table></div>';
+    } catch (error) {
+      document.getElementById('resPendientes').innerHTML = '<span class="small-note">Error al cargar: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  async function responderTransferenciaId(id, estado) {
+    if (!confirm((estado === 'aceptada' ? 'Aceptar' : 'Rechazar') + ' la transferencia #' + id + '?')) return;
+    try {
+      const res = await post('/transferencia/' + id, { estado: estado });
+      fill('resRespuestaTransferencia', res);
+      await cargarPendientes();
+    } catch (error) {
+      fill('resRespuestaTransferencia', error.message);
+    }
+  }
+
+  async function cargarEntradas() {
+    const email = t_emailOrigen.value.trim();
+    if (!email) { alert('Ingresa un email de origen primero'); return; }
+    const el = document.getElementById('t_entradasContainer');
+    try {
+      const data = await requestJSON('/usuario/' + encodeURIComponent(email) + '/entradas');
+      const todas = data.entradas || [];
+      const disponibles = todas.filter(e => e.estado === 'activa' && parseInt(e.cantTransferencias) < 3);
+      if (!disponibles.length) {
+        el.innerHTML = '<span class="small-note">No hay entradas activas disponibles para transferir.</span>';
+        document.getElementById('btnTransferir').disabled = true;
+        return;
+      }
+      const items = disponibles.map(e => {
+        const checked = entradasSeleccionadas.has(e.idEntrada) ? 'checked' : '';
+        return `<label style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;">
+          <input type="checkbox" value="${e.idEntrada}" ${checked} onchange="toggleEntrada(${e.idEntrada}, this.checked)" />
+          <span><strong>#${e.idEntrada}</strong> — ${escapeHtml(e.nombreEvento)} — ${escapeHtml(e.fecha)} ${escapeHtml(e.hora)} — ${escapeHtml(e.estadio)} — Sector ${escapeHtml(e.idSector)}</span>
+        </label>`;
+      }).join('');
+      const count = disponibles.length;
+      el.innerHTML = `<div style="margin-bottom:8px;color:var(--accent);font-size:0.92rem;">${count} entrada(s) disponible(s) — selecciona las que quieras transferir</div><div style="max-height:320px;overflow-y:auto;">${items}</div>`;
+      actualizarBoton();
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error al cargar entradas: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  function toggleEntrada(id, checked) {
+    if (checked) { entradasSeleccionadas.add(id); }
+    else { entradasSeleccionadas.delete(id); }
+    actualizarBoton();
+  }
+
+  function actualizarBoton() {
+    const btn = document.getElementById('btnTransferir');
+    btn.disabled = entradasSeleccionadas.size === 0;
+    btn.innerHTML = entradasSeleccionadas.size
+      ? '<span class="material-symbols-outlined" style="font-size:18px;">send</span> Solicitar transferencia (' + entradasSeleccionadas.size + ' entrada(s))'
+      : '<span class="material-symbols-outlined" style="font-size:18px;">send</span> Solicitar transferencia';
+  }
+
   async function solicitarTransferencia() {
+    const ids = Array.from(entradasSeleccionadas);
+    if (!ids.length) { return; }
     try {
       fill('resTransferencia', await post('/transferencia', {
-        idEntrada: t_idEntrada.value,
-        emailOrigen: t_emailOrigen.value,
-        emailDestino: t_emailDestino.value,
+        emailOrigen: t_emailOrigen.value.trim(),
+        emailDestino: t_emailDestino.value.trim(),
+        idsEntrada: ids,
       }));
+      entradasSeleccionadas.clear();
+      document.getElementById('btnTransferir').disabled = true;
+      document.getElementById('btnTransferir').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">send</span> Solicitar transferencia';
+      cargarEntradas();
     } catch (error) {
       fill('resTransferencia', error.message);
     }
@@ -49,12 +158,15 @@
 
   async function responderTransferencia() {
     try {
-      fill('resRespuestaTransferencia', await post(`/transferencia/${rt_idTransferencia.value}`, {
+      fill('resRespuestaTransferencia', await post('/transferencia/' + rt_idTransferencia.value, {
         estado: rt_estado.value,
       }));
+      if (sesEmail) await cargarPendientes();
     } catch (error) {
       fill('resRespuestaTransferencia', error.message);
     }
   }
+
+  cargarPendientes();
 </script>
 {% endblock %}

@@ -4,24 +4,13 @@ Funciones para la gestión de eventos y vinculaciones.
 
 try:
     from .connection import get_db_connection
+    from .utils import interpretar_error_db
 except ImportError:
     from connection import get_db_connection
+    from utils import interpretar_error_db
 
 
 def crear_evento(nombre_evento, fecha, hora, id_estadio, email_admin):
-    """
-    Crea un nuevo evento en un estadio.
-    
-    Args:
-        nombre_evento: Nombre del evento
-        fecha: Fecha del evento (YYYY-MM-DD)
-        hora: Hora del evento (HH:MM:SS)
-        id_estadio: ID del estadio donde se realiza
-        email_admin: Email del administrador responsable
-        
-    Returns:
-        ID del evento creado, o False si hay error
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -33,11 +22,11 @@ def crear_evento(nombre_evento, fecha, hora, id_estadio, email_admin):
             (nombre_evento, fecha, hora, id_estadio, email_admin),
         )
         conn.commit()
-        return cursor.lastrowid
+        return cursor.lastrowid, None
     except Exception as e:
         conn.rollback()
-        print(f"Error creando evento: {e}")
-        return False
+        err = interpretar_error_db(e, "evento")
+        return False, err
     finally:
         cursor.close()
         conn.close()
@@ -287,6 +276,54 @@ def listar_sectores_evento(id_evento):
             WHERE es.idEvento = %s
             GROUP BY s.idSector, s.codigo, s.idEstadio, e.nombreEvento, s.capacidadMaxima, s.costoEntrada
             ORDER BY s.codigo
+            """,
+            (id_evento,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def listar_entradas_no_validadas_por_evento(id_evento):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT e.idEntrada, e.emailPropietario, e.idSector, s.codigo AS sectorCodigo,
+                   e.estado, e.cantTransferencias
+            FROM Entrada e
+            JOIN Sector s ON s.idSector = e.idSector
+            WHERE e.idEvento = %s
+              AND e.estado != 'consumida'
+              AND e.idEntrada NOT IN (
+                  SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
+              )
+            ORDER BY s.codigo, e.emailPropietario
+            """,
+            (id_evento,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def listar_entradas_validadas_por_evento(id_evento):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT e.idEntrada, e.emailPropietario, s.codigo AS sectorCodigo,
+                   ve.fechaHoraValidacion, ve.emailFuncionario, d.dirMAC
+            FROM Entrada e
+            JOIN Sector s ON s.idSector = e.idSector
+            JOIN Validacion_Entrada ve ON ve.idEntrada = e.idEntrada
+            JOIN Dispositivo d ON d.idDispositivo = ve.idDispositivo
+            WHERE e.idEvento = %s
+            ORDER BY ve.fechaHoraValidacion DESC
             """,
             (id_evento,),
         )

@@ -16,46 +16,43 @@
       <input id="q_email" placeholder="Email usuario" />
     </div>
     <div class="actions">
-      <button class="btn" onclick="verCompras()">Ver compras</button>
-      <button class="btn" onclick="verEntradas()">Ver entradas</button>
-      <button class="btn" onclick="verTransferencias()">Ver transferencias</button>
+      <button class="btn" onclick="verCompras()"><span class="material-symbols-outlined">receipt_long</span> Ver compras</button>
+      <button class="btn tonal" onclick="verEntradas()"><span class="material-symbols-outlined">confirmation_number</span> Ver entradas</button>
+      <button class="btn outlined" onclick="verTransferencias()"><span class="material-symbols-outlined">swap_horiz</span> Ver transferencias</button>
     </div>
     <div class="result" id="resConsultas"></div>
   </div>
 
+  {% set roles = session.get('user_roles', {}) %}
+  {% if roles.get('admin') or roles.get('funcionario') %}
   <div class="panel">
     <h2>Evento y funcionario</h2>
     <div class="form-grid">
-      <input id="q_idEvento" placeholder="ID evento" />
-      <input id="cov_emailFuncionario" placeholder="Email funcionario" />
-      <input id="cov_idEvento" placeholder="ID evento para cobertura" />
+      <select id="selEvento" style="grid-column:1/-1;">
+        <option value="">Cargando eventos...</option>
+      </select>
+      <select id="selFuncionario" style="grid-column:1/-1;">
+        <option value="">Seleccioná un evento primero</option>
+      </select>
     </div>
     <div class="actions">
-      <button class="btn ghost" onclick="verSectoresEvento()">Ver sectores del evento</button>
-      <button class="btn secondary" onclick="verCobertura()">Ver cobertura</button>
+      <button class="btn outlined" onclick="verSectoresEvento()"><span class="material-symbols-outlined">map</span> Ver sectores del evento</button>
+      <button class="btn tonal" onclick="verCobertura()"><span class="material-symbols-outlined">coverage</span> Ver cobertura</button>
     </div>
     <div class="result" id="resExtras"></div>
   </div>
 
   <div class="panel" style="grid-column: 1 / -1;">
     <h2>Rankings</h2>
-    <div class="actions"><button class="btn ghost" onclick="cargarRankings()">Actualizar rankings</button></div>
+    <div class="actions"><button class="btn outlined" onclick="cargarRankings()"><span class="material-symbols-outlined">leaderboard</span> Actualizar rankings</button></div>
     <div class="result" id="resRanking"></div>
   </div>
+  {% endif %}
 </section>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
   function tableMarkup(rows) {
     if (!rows || !rows.length) {
       return '<div class="small-note">No hay datos para mostrar.</div>';
@@ -105,9 +102,47 @@
     }
   }
 
-  async function verSectoresEvento() {
+  async function cargarSelectEventos() {
     try {
-      const data = await requestJSON(`/eventos/${q_idEvento.value}/sectores`);
+      const data = await requestJSON('/eventos');
+      const eventos = data.eventos || [];
+      const opts = eventos.map(e => `<option value="${e.idEvento}">${escapeHtml(e.nombreEvento)} — ${escapeHtml(e.fecha)} — ${escapeHtml(e.estadio)}</option>`).join('');
+      const sel = document.getElementById('selEvento');
+      sel.innerHTML = '<option value="">Seleccioná un evento</option>' + opts;
+      if (eventos.length) {
+        sel.value = String(eventos[0].idEvento);
+        cargarSelectFuncionarios();
+      }
+      sel.onchange = cargarSelectFuncionarios;
+    } catch (error) {
+      document.getElementById('selEvento').innerHTML = '<option value="">Error al cargar eventos</option>';
+    }
+  }
+
+  async function cargarSelectFuncionarios() {
+    const idEvento = document.getElementById('selEvento').value;
+    const selFunc = document.getElementById('selFuncionario');
+    if (!idEvento) {
+      selFunc.innerHTML = '<option value="">Seleccioná un evento primero</option>';
+      return;
+    }
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/funcionarios`);
+      const funcs = data.funcionarios || [];
+      const opts = funcs.map(f => `<option value="${escapeHtml(f.emailFuncionario)}">${escapeHtml(f.emailFuncionario)}</option>`).join('');
+      selFunc.innerHTML = opts
+        ? '<option value="">Seleccioná un funcionario</option>' + opts
+        : '<option value="">No hay funcionarios asignados a este evento</option>';
+    } catch (error) {
+      selFunc.innerHTML = '<option value="">Error al cargar funcionarios</option>';
+    }
+  }
+
+  async function verSectoresEvento() {
+    const idEvento = document.getElementById('selEvento').value;
+    if (!idEvento) { fill('resExtras', 'Seleccioná un evento primero'); return; }
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/sectores`);
       renderReport('resExtras', 'Sectores del evento', data.sectores);
     } catch (error) {
       fill('resExtras', error.message);
@@ -115,13 +150,19 @@
   }
 
   async function verCobertura() {
+    const idEvento = document.getElementById('selEvento').value;
+    const emailFunc = document.getElementById('selFuncionario').value;
+    if (!idEvento) { fill('resExtras', 'Seleccioná un evento primero'); return; }
+    if (!emailFunc) { fill('resExtras', 'Seleccioná un funcionario'); return; }
     try {
-      const data = await requestJSON(`/funcionario/${cov_emailFuncionario.value}/evento/${cov_idEvento.value}/cobertura`);
+      const data = await requestJSON(`/funcionario/${encodeURIComponent(emailFunc)}/evento/${idEvento}/cobertura`);
       renderReport('resExtras', 'Cobertura por sector', data.cobertura);
     } catch (error) {
       fill('resExtras', error.message);
     }
   }
+
+  cargarSelectEventos();
 
   async function cargarRankings() {
     try {

@@ -19,11 +19,11 @@
       <input id="est_pais" placeholder="País" />
       <input id="est_ciudad" placeholder="Ciudad" />
       <input id="est_emailAdmin" placeholder="Email admin" />
-      <input id="est_fechaAsignacion" class="full" placeholder="Fecha asignación YYYY-MM-DD" />
+      <input id="est_fechaAsignacion" class="full" type="date" />
     </div>
     <div class="actions">
-      <button class="btn" onclick="crearEstadio()">Crear estadio</button>
-      <button class="btn ghost" onclick="cargarEstadios()">Ver estadios creados</button>
+      <button class="btn" onclick="crearEstadio()"><span class="material-symbols-outlined">add_business</span> Crear estadio</button>
+      <button class="btn outlined" onclick="cargarEstadios()"><span class="material-symbols-outlined">visibility</span> Ver estadios</button>
     </div>
     <div class="result" id="resEstadio"></div>
     <div class="result" id="resEstadios"></div>
@@ -42,8 +42,8 @@
       <input id="sec_costo" placeholder="Costo entrada" />
     </div>
     <div class="actions">
-      <button class="btn secondary" onclick="crearSector()">Crear sector</button>
-      <button class="btn ghost" onclick="cargarSectores()">Ver sectores creados</button>
+      <button class="btn tonal" onclick="crearSector()"><span class="material-symbols-outlined">select_all</span> Crear sector</button>
+      <button class="btn outlined" onclick="cargarSectores()"><span class="material-symbols-outlined">visibility</span> Ver sectores</button>
     </div>
     <div class="result" id="resSector"></div>
     <div class="result" id="resSectores"></div>
@@ -53,49 +53,96 @@
     <h2>Crear evento</h2>
     <div class="form-grid">
       <input id="ev_nombre" placeholder="Nombre evento" />
-      <input id="ev_fecha" placeholder="Fecha YYYY-MM-DD" />
-      <input id="ev_hora" placeholder="Hora HH:MM:SS" />
+      <input id="ev_fecha" type="date" />
+      <input id="ev_hora" type="time" step="1" />
       <select id="ev_idEstadio">
         <option value="">Selecciona un estadio</option>
       </select>
       <input id="ev_emailAdmin" class="full" placeholder="Email admin" />
     </div>
     <div class="actions">
-      <button class="btn" onclick="crearEvento()">Crear evento</button>
-      <button class="btn ghost" onclick="cargarEventos()">Ver eventos creados</button>
+      <button class="btn" onclick="crearEvento()"><span class="material-symbols-outlined">event</span> Crear evento</button>
+      <button class="btn outlined" onclick="cargarEventos()"><span class="material-symbols-outlined">visibility</span> Ver eventos</button>
     </div>
     <div class="result" id="resEvento"></div>
     <div class="result" id="resEventos"></div>
   </div>
 
   <div class="panel">
-    <h2>Vinculaciones</h2>
+    <h2>Vincular equipo a evento</h2>
+    <p class="small-note">Asigna un equipo como <strong>local</strong> o <strong>visitante</strong> a un evento existente.</p>
     <div class="form-grid">
-      <select id="ee_idEvento">
-        <option value="">Selecciona un evento</option>
-      </select>
-      <select id="ee_idEquipo">
-        <option value="">Selecciona un equipo</option>
-      </select>
-      <select id="ee_rol">
-        <option value="">Selecciona un rol</option>
-        <option value="local">local</option>
-        <option value="visitante">visitante</option>
-      </select>
-      <select id="es_idEvento">
-        <option value="">Selecciona un evento</option>
-      </select>
-      <select id="es_idSector">
-        <option value="">Selecciona un evento primero</option>
-      </select>
+      <div>
+        <label class="field-label" for="ee_idEvento">Evento</label>
+        <select id="ee_idEvento">
+          <option value="">Selecciona un evento</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="ee_idEquipo">Equipo</label>
+        <select id="ee_idEquipo">
+          <option value="">Selecciona un evento primero</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="ee_rol">Rol</label>
+        <select id="ee_rol">
+          <option value="">Selecciona un rol</option>
+          <option value="local">Local</option>
+          <option value="visitante">Visitante</option>
+        </select>
+      </div>
     </div>
     <div class="actions">
-      <button class="btn secondary" onclick="vincularEquipo()">Vincular equipo</button>
-      <button class="btn secondary" onclick="habilitarSector()">Habilitar sector</button>
-      <button class="btn ghost" onclick="cargarVinculaciones()">Ver vinculaciones creadas</button>
+      <button class="btn tonal" onclick="vincularEquipo()"><span class="material-symbols-outlined">group_add</span> Vincular equipo</button>
+      <button class="btn outlined" onclick="cargarVinculaciones()"><span class="material-symbols-outlined">link</span> Ver vinculaciones</button>
     </div>
     <div class="result" id="resVinculos"></div>
     <div class="result" id="resVinculaciones"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Habilitar sector en evento</h2>
+    <p class="small-note">Vincula un sector del estadio a un evento para que esté disponible para la venta de entradas.</p>
+    <div class="form-grid">
+      <div>
+        <label class="field-label" for="es_idEvento">Evento</label>
+        <select id="es_idEvento">
+          <option value="">Selecciona un evento</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="es_idSector">Sector</label>
+        <select id="es_idSector">
+          <option value="">Selecciona un evento primero</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn tonal" onclick="habilitarSector()"><span class="material-symbols-outlined">check_circle</span> Habilitar sector</button>
+    </div>
+    <div class="result" id="resHabilitarSector"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Asignación de funcionarios</h2>
+    <div class="form-grid">
+      <select id="af_idEvento">
+        <option value="">Selecciona un evento</option>
+      </select>
+      <select id="af_idSector">
+        <option value="">Selecciona un evento primero</option>
+      </select>
+      <select id="af_emailFuncionario">
+        <option value="">Cargando funcionarios...</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn tonal" onclick="asignarFuncionarioSector()"><span class="material-symbols-outlined">assignment_ind</span> Asignar funcionario</button>
+      <button class="btn outlined" onclick="cargarAsignaciones()"><span class="material-symbols-outlined">visibility</span> Ver asignaciones</button>
+    </div>
+    <div class="result" id="resAsignarFunc"></div>
+    <div class="result" id="resAsignaciones"></div>
   </div>
 </section>
 {% endblock %}
@@ -122,15 +169,18 @@
     });
   }
 
-  function renderTable(rows) {
+  function renderTable(rows, columns) {
     if (!rows || !rows.length) {
-      return '<div class="small-note">No hay eventos cargados todavía.</div>';
+      return '<div class="small-note">No hay datos cargados todavía.</div>';
     }
 
-    const headers = sortHeaders(Object.keys(rows[0]));
-    const head = headers.map((header) => `<th>${header}</th>`).join('');
+    const cols = columns
+      ? columns.map((c) => (typeof c === 'string' ? { key: c, label: c } : c))
+      : sortHeaders(Object.keys(rows[0])).map((k) => ({ key: k, label: k }));
+
+    const head = cols.map((c) => `<th>${c.label}</th>`).join('');
     const body = rows.map((row) => {
-      const cells = headers.map((header) => `<td>${row[header] ?? ''}</td>`).join('');
+      const cells = cols.map((c) => `<td>${row[c.key] ?? ''}</td>`).join('');
       return `<tr>${cells}</tr>`;
     }).join('');
 
@@ -147,14 +197,24 @@
   async function cargarEventos() {
     try {
       const data = await requestJSON('/eventos');
-      document.getElementById('resEventos').innerHTML = renderTable(data.eventos);
+      document.getElementById('resEventos').innerHTML = renderTable(data.eventos, [
+        { key: 'nombreEvento', label: 'Evento' },
+        { key: 'fecha', label: 'Fecha' },
+        { key: 'hora', label: 'Hora' },
+        { key: 'estadio', label: 'Estadio' },
+        { key: 'paisEstadio', label: 'País' },
+        { key: 'ciudadEstadio', label: 'Ciudad' },
+        { key: 'equipos', label: 'Equipos' },
+      ]);
 
       const eventos = data.eventos || [];
       const options = eventos.map((evento) => `<option value="${evento.idEvento}">${evento.idEvento} | ${evento.nombreEvento}</option>`).join('');
       ee_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
       es_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
+      af_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
       ee_idEvento.onchange = cargarEquiposDisponibles;
       es_idEvento.onchange = cargarSectoresDisponiblesEvento;
+      af_idEvento.onchange = cargarSectoresEventoAF;
 
       if (eventos.length) {
         if (!ee_idEvento.value) {
@@ -165,6 +225,10 @@
           es_idEvento.value = String(eventos[0].idEvento);
           cargarSectoresDisponiblesEvento();
         }
+        if (!af_idEvento.value) {
+          af_idEvento.value = String(eventos[0].idEvento);
+          cargarSectoresEventoAF();
+        }
       }
     } catch (error) {
       fill('resEventos', error.message);
@@ -174,7 +238,13 @@
   async function cargarEstadios() {
     try {
       const data = await requestJSON('/estadios');
-      document.getElementById('resEstadios').innerHTML = renderTable(data.estadios);
+      document.getElementById('resEstadios').innerHTML = renderTable(data.estadios, [
+        { key: 'nombre', label: 'Nombre' },
+        { key: 'pais', label: 'País' },
+        { key: 'ciudad', label: 'Ciudad' },
+        { key: 'emailAdmin', label: 'Admin' },
+        { key: 'fechaAsignacion', label: 'Asignación' },
+      ]);
 
       const estadios = data.estadios || [];
       const options = estadios.map((estadio) => `<option value="${estadio.idEstadio}">${estadio.idEstadio} | ${estadio.nombre}</option>`).join('');
@@ -199,7 +269,12 @@
   async function cargarSectores() {
     try {
       const data = await requestJSON('/sectores');
-      document.getElementById('resSectores').innerHTML = renderTable(data.sectores);
+      document.getElementById('resSectores').innerHTML = renderTable(data.sectores, [
+        { key: 'codigo', label: 'Código' },
+        { key: 'estadio', label: 'Estadio' },
+        { key: 'capacidadMaxima', label: 'Capacidad' },
+        { key: 'costoEntrada', label: 'Costo entrada' },
+      ]);
     } catch (error) {
       fill('resSectores', error.message);
     }
@@ -208,7 +283,12 @@
   async function cargarVinculaciones() {
     try {
       const data = await requestJSON('/vinculaciones');
-      document.getElementById('resVinculaciones').innerHTML = renderTable(data.vinculaciones);
+      document.getElementById('resVinculaciones').innerHTML = renderTable(data.vinculaciones, [
+        { key: 'tipo', label: 'Tipo' },
+        { key: 'nombreEvento', label: 'Evento' },
+        { key: 'referencia', label: 'Referencia' },
+        { key: 'detalle', label: 'Detalle' },
+      ]);
     } catch (error) {
       fill('resVinculaciones', error.message);
     }
@@ -277,6 +357,85 @@
       }
     } catch (error) {
       es_idSector.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarSectoresEventoAF() {
+    const idEvento = af_idEvento.value;
+    if (!idEvento) {
+      af_idSector.innerHTML = '<option value="">Selecciona un evento primero</option>';
+      return;
+    }
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/sectores`);
+      const sectores = data.sectores || [];
+      af_idSector.innerHTML = sectores.length
+        ? sectores.map((s) => `<option value="${s.idSector}">Sector ${s.codigo}</option>`).join('')
+        : '<option value="">No hay sectores disponibles</option>';
+    } catch (error) {
+      af_idSector.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function cargarFuncionarios() {
+    try {
+      const data = await requestJSON('/funcionarios');
+      const funcs = data.funcionarios || [];
+      af_emailFuncionario.innerHTML = funcs.length
+        ? funcs.map((f) => `<option value="${f.email}">${f.email} | Legajo ${f.numeroLegajo}</option>`).join('')
+        : '<option value="">No hay funcionarios</option>';
+    } catch (error) {
+      af_emailFuncionario.innerHTML = `<option value="">${error.message}</option>`;
+    }
+  }
+
+  async function asignarFuncionarioSector() {
+    try {
+      const respuesta = await post('/asignacion', {
+        idEvento: parseInt(af_idEvento.value),
+        idSector: parseInt(af_idSector.value),
+        emailFuncionario: af_emailFuncionario.value,
+      });
+      fill('resAsignarFunc', { mensaje: 'Funcionario asignado correctamente' });
+      await cargarAsignaciones();
+    } catch (error) {
+      fill('resAsignarFunc', error.message);
+    }
+  }
+
+  async function cargarAsignaciones() {
+    const idEvento = af_idEvento.value;
+    if (!idEvento) {
+      document.getElementById('resAsignaciones').innerHTML = '<span class="small-note">Selecciona un evento primero</span>';
+      return;
+    }
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/asignaciones`);
+      const rows = data.asignaciones || [];
+      if (!rows.length) {
+        document.getElementById('resAsignaciones').innerHTML = '<span class="small-note">No hay asignaciones para este evento.</span>';
+        return;
+      }
+      const table = '<div style="overflow-x:auto;"><table><thead><tr><th>Sector</th><th>Email funcionario</th><th>Documento</th><th>Acción</th></tr></thead><tbody>' +
+        rows.map((r) => `<tr><td>${r.sectorCodigo}</td><td>${r.emailFuncionario}</td><td>${r.docPais}-${r.docTipo} ${r.docNumero}</td><td><button class="btn outlined" style="padding:6px 16px;font-size:0.82rem;" onclick="eliminarAsignacion(${r.idEvento},${r.idSector},'${r.emailFuncionario}')"><span class="material-symbols-outlined" style="font-size:16px;">delete</span> Eliminar</button></td></tr>`).join('') +
+        '</tbody></table></div>';
+      document.getElementById('resAsignaciones').innerHTML = table;
+    } catch (error) {
+      document.getElementById('resAsignaciones').innerHTML = '<span class="small-note">' + error.message + '</span>';
+    }
+  }
+
+  async function eliminarAsignacion(idEvento, idSector, email) {
+    if (!confirm(`¿Eliminar asignación de ${email} en sector ${idSector}?`)) return;
+    try {
+      await requestJSON('/asignacion', {
+        method: 'DELETE',
+        body: JSON.stringify({ idEvento, idSector, emailFuncionario: email }),
+      });
+      fill('resAsignarFunc', { mensaje: 'Asignación eliminada' });
+      await cargarAsignaciones();
+    } catch (error) {
+      fill('resAsignarFunc', error.message);
     }
   }
 
@@ -354,11 +513,14 @@
         idSector: es_idSector.value,
       });
 
-      fill('resVinculos', { mensaje: 'Sector habilitado correctamente', habilitado: respuesta.habilitado });
+      fill('resHabilitarSector', { mensaje: 'Sector habilitado correctamente', habilitado: respuesta.habilitado });
       await cargarEventos();
       await cargarSectoresDisponiblesEvento();
+      if (af_idEvento.value) {
+        await cargarSectoresEventoAF();
+      }
     } catch (error) {
-      fill('resVinculos', error.message);
+      fill('resHabilitarSector', error.message);
     }
   }
 
@@ -387,6 +549,8 @@
     cargarCodigosDisponibles();
     cargarEquiposDisponibles();
     cargarSectoresDisponiblesEvento();
+    cargarFuncionarios();
+    cargarSectoresEventoAF();
   }
 </script>
 {% endblock %}
