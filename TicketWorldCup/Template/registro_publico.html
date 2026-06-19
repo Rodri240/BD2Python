@@ -28,7 +28,13 @@
       <input id="r_passw" type="password" placeholder="Contraseña *" class="full" />
 
       <input id="r_docPais" placeholder="País del documento *" />
-      <input id="r_docTipo" placeholder="Tipo de documento *" />
+      <select id="r_docTipo">
+        <option value="">Tipo de documento *</option>
+        <option value="CI">Cédula de Identidad (CI)</option>
+        <option value="DNI">Documento Nacional de Identidad (DNI)</option>
+        <option value="PAS">Pasaporte</option>
+        <option value="SSN">Número de Seguro Social (SSN - USA)</option>
+      </select>
       <input id="r_docNumero" placeholder="Número de documento *" class="full" />
 
       <input id="r_dirPais" placeholder="País (dirección) *" />

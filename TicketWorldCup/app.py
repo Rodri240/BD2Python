@@ -79,8 +79,10 @@ PAGE_ENDPOINTS = {
 
 PUBLIC_ENDPOINTS = {
     "login",
+    "index",
     "registrarse",
     "ruta_registro_publico",
+    "principal",
     "clear_session_user",
     "static",
 }
@@ -149,10 +151,17 @@ def _requiere_admin():
     return None
 
 
+@app.route("/principal", methods=["GET"])
+def principal():
+    if session.get("user_email"):
+        return redirect(url_for("home"))
+    return render_template("principal.html")
+
+
 @app.route("/", methods=["GET"])
 def index():
     if not session.get("user_email"):
-        return redirect(url_for("login"))
+        return redirect(url_for("principal"))
     return render_template(
         "index.html",
         session_email=session.get("user_email"),

@@ -2,40 +2,44 @@
 
 {% block title %}Acceso | Ticket World Cup{% endblock %}
 
-{% block content %}
-<section class="page-grid" style="grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); align-items: center; min-height: calc(100vh - 180px);">
-  <div class="hero-card">
-    <p class="eyebrow">Acceso al sistema</p>
-    <h1>Iniciá sesión para entrar a la demo</h1>
-    <p class="hero-copy">
-      El acceso queda guardado en la sesión del navegador para mantenerte autenticado mientras navegás por las páginas del sistema.
-    </p>
-    <div class="badge-row">
-      <span class="badge"><span class="material-symbols-outlined">lock</span> Sesión persistente</span>
-      <span class="badge"><span class="material-symbols-outlined">dns</span> Login real contra la base</span>
-      <span class="badge"><span class="material-symbols-outlined">shield</span> Páginas protegidas</span>
-    </div>
-  </div>
+{% block nav_back %}
+<a href="{{ url_for('principal') }}" title="Volver al inicio" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;color:var(--md-on-surface);text-decoration:none;transition:background 0.15s;flex-shrink:0;" onmouseover="this.style.background='var(--md-surface-variant)'" onmouseout="this.style.background='transparent'">
+  <span class="material-symbols-outlined" style="font-size:22px;">arrow_back</span>
+</a>
+{% endblock %}
 
-  <div class="panel">
-    <h2>Ingresar</h2>
-    <form method="post" action="{{ url_for('login') }}">
-      <div class="form-grid">
-        <input name="email" type="email" placeholder="Email" required class="full" />
-        <input name="password" type="password" placeholder="Contraseña" required class="full" />
-      </div>
-      <div class="actions">
-        <button class="btn" type="submit"><span class="material-symbols-outlined">login</span> Entrar</button>
-        <a class="btn outlined" href="{{ url_for('index') }}"><span class="material-symbols-outlined">home</span> Ver inicio</a>
-      </div>
-      <p style="margin-top: 16px; font-size: 0.88rem; color: var(--on-surface-variant);">
-        ¿No tenés cuenta?
-        <a href="{{ url_for('registrarse') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Registrate acá</a>
-      </p>
-    </form>
-    {% if error %}
-    <div class="result">{{ error }}</div>
-    {% endif %}
+{% block content %}
+<div style="height: calc(100vh - 80px); display: flex; align-items: center; justify-content: center; padding: 24px; box-sizing: border-box; overflow: hidden;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; max-width: 900px; align-items: stretch; max-height: 100%;">
+
+    <!-- Imagen -->
+    <div style="border-radius: 16px; overflow: hidden; display: flex; align-items: center;">
+      <img src="{{ url_for('static', filename='foto_portada.png') }}"
+           alt="Ticket World Cup 2026"
+           style="width: 100%; height: 100%; object-fit: cover; display: block; max-height: calc(100vh - 128px);" />
+    </div>
+
+    <!-- Formulario -->
+    <div class="panel" style="display: flex; flex-direction: column; justify-content: center;">
+      <h2 style="margin-top: 0;">Ingresar</h2>
+      <form method="post" action="{{ url_for('login') }}">
+        <div class="form-grid">
+          <input name="email" type="email" placeholder="Email" required class="full" />
+          <input name="password" type="password" placeholder="Contraseña" required class="full" />
+        </div>
+        <div class="actions" style="margin-top: 16px;">
+          <button class="btn" type="submit"><span class="material-symbols-outlined">login</span> Entrar</button>
+        </div>
+        <p style="margin-top: 16px; font-size: 0.88rem; color: var(--on-surface-variant);">
+          ¿No tenés cuenta?
+          <a href="{{ url_for('registrarse') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Registrate acá</a>
+        </p>
+      </form>
+      {% if error %}
+      <div class="result" style="margin-top: 12px;">{{ error }}</div>
+      {% endif %}
+    </div>
+
   </div>
-</section>
+</div>
 {% endblock %}
