@@ -46,7 +46,7 @@ def ranking_eventos_mas_vendidos(limite=10):
                 ev.idEvento,
                 ev.nombreEvento,
                 ev.fecha,
-                ev.hora,
+                TIME_FORMAT(ev.hora, '%H:%i') AS hora,
                 COUNT(en.idEntrada) AS entradasVendidas,
                 COALESCE(SUM(v.montoTotal), 0) AS facturacion
             FROM Evento ev

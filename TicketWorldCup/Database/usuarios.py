@@ -318,7 +318,7 @@ def listar_asignaciones_funcionario(email):
     try:
         cursor.execute(
             """
-            SELECT af.idEvento, e.nombreEvento, e.fecha, e.hora,
+            SELECT af.idEvento, e.nombreEvento, e.fecha, TIME_FORMAT(e.hora, '%H:%i') AS hora,
                    af.idSector, s.codigo AS sectorCodigo,
                    st.nombre AS estadio,
                    af.emailFuncionario
