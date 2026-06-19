@@ -470,11 +470,14 @@
 <body>
   <div class="wrap">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
-        <div class="brand-text">
-          <strong>Ticket World Cup</strong>
-          <span>Demo funcional</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        {% block nav_back %}{% endblock %}
+        <div class="brand">
+          <div class="brand-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
+          <div class="brand-text">
+            <strong>Ticket World Cup</strong>
+            <span>Demo funcional</span>
+          </div>
         </div>
       </div>
       {% if session_email %}
