@@ -681,6 +681,16 @@ def ruta_asignaciones_evento(id_evento):
     return _json_ok({"asignaciones": listar_asignaciones_evento(id_evento)})
 
 
+@app.route("/eventos/<int:id_evento>/mis-sectores", methods=["GET"])
+def ruta_mis_sectores_evento(id_evento):
+    email = session.get("user_email")
+    if not email:
+        return _json_error("No autenticado", 401)
+    asignaciones = listar_asignaciones_funcionario(email)
+    sectores = [a["sectorCodigo"] for a in asignaciones if a.get("idEvento") == id_evento]
+    return _json_ok({"sectores": sectores})
+
+
 @app.route("/asignacion", methods=["POST"])
 def ruta_asignar_funcionario():
     bloqueo = _requiere_admin()

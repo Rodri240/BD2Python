@@ -34,6 +34,7 @@
       <select id="v_idDispositivo" style="flex:1;min-width:160px;"><option value="">Dispositivo...</option></select>
       <button class="btn outlined" onclick="cargarEntradasPendientes()"><span class="material-symbols-outlined">refresh</span> Cargar</button>
     </div>
+    <div id="sectorBanner" style="display:none;margin-bottom:12px;"></div>
     <div class="result" id="resEntradasPendientes"><span class="small-note">Seleccioná un evento, elegí un dispositivo y presioná "Cargar".</span></div>
   </div>
 
@@ -90,6 +91,7 @@
       document.getElementById('le_idEvento').addEventListener('change', function() {
         document.getElementById('va_idEvento').value = this.value;
         document.getElementById('cob_idEvento').value = this.value;
+        cargarMisSectores(this.value);
       });
 
       const params = new URLSearchParams(window.location.search);
@@ -98,6 +100,7 @@
         for (const id of ['le_idEvento', 'va_idEvento', 'cob_idEvento']) {
           document.getElementById(id).value = eventoParam;
         }
+        cargarMisSectores(eventoParam);
         await cargarEntradasPendientes();
       }
     } catch (_) {}
@@ -145,10 +148,30 @@
     }
   }
 
+  async function cargarMisSectores(idEvento) {
+    const banner = document.getElementById('sectorBanner');
+    const esFuncionario = sessionRoles.funcionario && !sessionRoles.admin;
+    if (!esFuncionario || !idEvento) { banner.style.display = 'none'; return; }
+    try {
+      const data = await requestJSON('/eventos/' + idEvento + '/mis-sectores');
+      const sectores = data.sectores || [];
+      if (!sectores.length) { banner.style.display = 'none'; return; }
+      const pills = sectores.map(s =>
+        `<span style="background:var(--primary);color:#fff;padding:2px 10px;border-radius:999px;font-size:0.82rem;font-weight:600;">${escapeHtml(s)}</span>`
+      ).join(' ');
+      banner.style.display = 'flex';
+      banner.style.alignItems = 'center';
+      banner.style.gap = '8px';
+      banner.style.flexWrap = 'wrap';
+      banner.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;color:var(--primary);">badge</span><span style="font-size:0.88rem;color:var(--on-surface-variant);">Tus sectores asignados para este evento:</span> ${pills}`;
+    } catch (_) { banner.style.display = 'none'; }
+  }
+
   async function cargarEntradasPendientes() {
     const idEvento = document.getElementById('le_idEvento').value;
     if (!idEvento) { alert('Seleccioná un evento primero'); return; }
     if (!ultimoIdDispositivo) { alert('Seleccioná un dispositivo primero'); return; }
+    cargarMisSectores(idEvento);
     const el = document.getElementById('resEntradasPendientes');
     try {
       const data = await requestJSON('/eventos/' + idEvento + '/entradas-no-validadas');
