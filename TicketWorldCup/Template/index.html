@@ -18,7 +18,9 @@
       <span class="badge"><span class="material-symbols-outlined">pages</span> Navegación por páginas reales</span>
     </div>
     <div class="actions" style="margin-top:18px;">
+      {% if session_roles.get('admin') %}
       <a class="btn" href="{{ url_for('registro') }}"><span class="material-symbols-outlined">person_add</span> Ir a registro</a>
+      {% endif %}
       <a class="btn tonal" href="{{ url_for('compras') }}"><span class="material-symbols-outlined">shopping_cart</span> Ir a compras</a>
       <a class="btn outlined" href="{{ url_for('consultas') }}"><span class="material-symbols-outlined">bar_chart</span> Ver reportes</a>
     </div>

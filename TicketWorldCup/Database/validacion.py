@@ -136,6 +136,10 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
             conn.rollback()
             return False, "El token QR no está activo o ya fue usado"
 
+        if token["estadoEntrada"] != "activa":
+            conn.rollback()
+            return False, f"La entrada no puede validarse (estado actual: {token['estadoEntrada']})"
+
         # Verificar que el token no haya expirado
         cursor.execute(
             """

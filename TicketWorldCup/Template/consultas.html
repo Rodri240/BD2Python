@@ -12,8 +12,15 @@
 
   <div class="panel">
     <h2>Consultas de usuario</h2>
+    {% if not session_roles.get('admin') and not session_roles.get('funcionario') %}
+    <p class="small-note" style="margin-bottom:12px;">Estás viendo tus propios datos.</p>
+    {% endif %}
     <div class="form-grid">
-      <input id="q_email" placeholder="Email usuario" />
+      <input id="q_email" placeholder="Email usuario"
+        {% if not session_roles.get('admin') and not session_roles.get('funcionario') %}
+        value="{{ session_email }}" readonly style="background:var(--surface2);color:var(--on-surface-variant);"
+        {% endif %}
+      />
     </div>
     <div class="actions">
       <button class="btn" onclick="verCompras()"><span class="material-symbols-outlined">receipt_long</span> Ver compras</button>

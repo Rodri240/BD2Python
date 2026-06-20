@@ -12,7 +12,7 @@ except ImportError:
     from utils import normalizar_items_venta, obtener_tasa_comision_actual
 
 
-def registrar_venta_y_entradas(email_comprador, items, estado='paga'):
+def registrar_venta_y_entradas(email_comprador, items, estado='pendiente'):
     """
     Registra una venta completa con todas sus entradas.
     
@@ -128,6 +128,72 @@ def ejecutar_transaccion_venta(email, id_evento, id_sector, cantidad):
             [{"id_evento": id_evento, "id_sector": id_sector, "cantidad": cantidad}],
         )
     )
+
+
+def _transicionar_venta(id_venta, estado_requerido, estado_nuevo):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        cursor.execute(
+            "SELECT idVenta, estado FROM Venta WHERE idVenta = %s FOR UPDATE",
+            (id_venta,),
+        )
+        venta = cursor.fetchone()
+        if not venta:
+            conn.rollback()
+            return False, "Venta no encontrada"
+        if venta["estado"] != estado_requerido:
+            conn.rollback()
+            return False, f"La venta debe estar en estado '{estado_requerido}' (estado actual: {venta['estado']})"
+        cursor.execute(
+            "UPDATE Venta SET estado = %s WHERE idVenta = %s",
+            (estado_nuevo, id_venta),
+        )
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        print(f"Error actualizando venta: {e}")
+        return False, "Error interno"
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def confirmar_pedido_venta(id_venta):
+    return _transicionar_venta(id_venta, "pendiente", "confirmada")
+
+
+def confirmar_pago_venta(id_venta):
+    return _transicionar_venta(id_venta, "confirmada", "paga")
+
+
+def listar_ventas_pendientes():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT
+                v.idVenta,
+                v.numero,
+                v.fechaVenta,
+                v.estado,
+                v.montoTotal,
+                v.emailComprador,
+                COUNT(e.idEntrada) AS cantidadEntradas
+            FROM Venta v
+            LEFT JOIN Entrada e ON e.idVenta = v.idVenta
+            WHERE v.estado IN ('pendiente', 'confirmada')
+            GROUP BY v.idVenta, v.numero, v.fechaVenta, v.estado, v.montoTotal, v.emailComprador
+            ORDER BY v.fechaVenta DESC
+            """
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def listar_compras_usuario(email_comprador):
