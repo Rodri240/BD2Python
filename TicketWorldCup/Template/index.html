@@ -96,7 +96,7 @@
            </a>`
         : `<span style="flex-shrink:0;font-size:0.78rem;color:var(--on-surface-variant);padding:6px 14px;">Disponible el ${escapeHtml(e.fecha)}</span>`;
     } else {
-      accion = `<a class="btn tonal" href="/compras" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+      accion = `<a class="btn tonal" href="/compras?evento=${e.idEvento}" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
         <span class="material-symbols-outlined" style="font-size:15px;">shopping_cart</span> Comprar
       </a>`;
     }

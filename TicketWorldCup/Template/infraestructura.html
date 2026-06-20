@@ -520,7 +520,7 @@
         rol: ee_rol.value,
       });
 
-      fill('resVinculos', { mensaje: 'Equipo vinculado correctamente', vinculado: respuesta.vinculado });
+      document.getElementById('resVinculos').innerHTML = '<span class="small-note" style="color:#1a7a4a;font-weight:600;">&#10003; Equipo vinculado correctamente</span>';
       await cargarEventos();
       await cargarEquiposDisponibles();
     } catch (error) {
