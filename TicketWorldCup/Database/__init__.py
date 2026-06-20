@@ -88,6 +88,7 @@ from .reportes import (
     ranking_eventos_mas_vendidos,
     ranking_mayores_compradores,
     cobertura_funcionario_evento,
+    cobertura_evento_completa,
     listar_funcionarios_evento,
 )
 
@@ -153,6 +154,7 @@ __all__ = [
     "ranking_eventos_mas_vendidos",
     "ranking_mayores_compradores",
     "cobertura_funcionario_evento",
+    "cobertura_evento_completa",
     "listar_funcionarios_evento",
     # Utilities
     "interpretar_error_db",
