@@ -31,6 +31,8 @@ from .usuarios import (
 from .infraestructura import (
     crear_estadio,
     crear_sector,
+    eliminar_sector,
+    deshabilitar_sector_evento,
     listar_estadios,
     listar_sectores,
     listar_codigos_sector_disponibles,
@@ -124,6 +126,8 @@ __all__ = [
     # Infraestructura
     "crear_estadio",
     "crear_sector",
+    "eliminar_sector",
+    "deshabilitar_sector_evento",
     "listar_estadios",
     "listar_sectores",
     "listar_codigos_sector_disponibles",
