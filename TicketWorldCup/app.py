@@ -44,6 +44,7 @@ from Database import (
     ejecutar_transaccion_venta,
     confirmar_pedido_venta,
     confirmar_pago_venta,
+    pagar_venta_usuario,
     listar_ventas_pendientes,
     listar_compras_usuario,
     listar_entradas_usuario,
@@ -542,6 +543,17 @@ def ruta_ventas_pendientes():
     return _json_ok({"ventas": listar_ventas_pendientes()})
 
 
+@app.route("/venta/<int:id_venta>/pagar", methods=["POST"])
+def ruta_pagar_venta(id_venta):
+    email = session.get("user_email")
+    if not email:
+        return _json_error("No autenticado", 401)
+    exito, error = pagar_venta_usuario(id_venta, email)
+    if exito:
+        return _json_ok({"pagado": True})
+    return _json_error(error or "No se pudo procesar el pago", 400)
+
+
 @app.route("/venta/<int:id_venta>/confirmar-pedido", methods=["POST"])
 def ruta_confirmar_pedido(id_venta):
     bloqueo = _requiere_admin()
@@ -591,24 +603,24 @@ def ruta_solicitar_transferencia():
         return _json_error("Formato inválido de idsEntrada", 400)
     ids_entrada = [int(x) for x in ids_entrada if str(x).strip().isdigit()]
     if not origen:
-        return _json_error("Falta el email de origen", 400)
+        return _json_error("ERROR: Falta el email de origen", 400)
     if not destino:
-        return _json_error("Falta el email de destino", 400)
+        return _json_error("ERROR: Falta el email de destino", 400)
     if origen == destino:
-        return _json_error("El origen y destino no pueden ser el mismo", 400)
+        return _json_error("ERROR: El origen y destino no pueden ser el mismo", 400)
     if not ids_entrada:
-        return _json_error("Selecciona al menos una entrada para transferir", 400)
+        return _json_error("ERROR: Selecciona al menos una entrada para transferir", 400)
     ids, error = solicitar_transferencia(origen, destino, ids_entrada)
     if ids:
         return _json_ok({"idsTransferencia": ids, "cantidad": len(ids)})
-    return _json_error(error or "No se pudo solicitar la transferencia", 500)
+    return _json_error(error or "ERROR: No se pudo solicitar la transferencia", 500)
 
 
 @app.route("/transferencia/<int:id_transferencia>", methods=["POST"])
 def ruta_responder_transferencia(id_transferencia):
     datos = _input_payload()
     exito = responder_transferencia(id_transferencia, datos.get("estado"))
-    return _json_ok({"actualizada": exito}) if exito else _json_error("No se pudo responder la transferencia", 500)
+    return _json_ok({"actualizada": exito}) if exito else _json_error("ERROR: No se pudo responder la transferencia", 500)
 
 
 @app.route("/entrada/<int:id_entrada>/qr", methods=["POST"])
@@ -642,7 +654,7 @@ def ruta_mi_qr(id_entrada):
         datos.get("tiempoVencimiento", 30),
     )
     if not nuevo_token:
-        return _json_error("No se pudo registrar el token QR", 500)
+        return _json_error("Error: No se pudo registrar el token QR", 500)
     token = obtener_token_activo(id_entrada)
     return _json_ok({"idToken": nuevo_token, "token": token})
 
@@ -677,11 +689,11 @@ def ruta_asignar_funcionario():
     id_sector = datos.get("idSector")
     email = datos.get("emailFuncionario")
     if not id_evento or not id_sector or not email:
-        return _json_error("Faltan datos: idEvento, idSector, emailFuncionario", 400)
+        return _json_error("Error: Faltan datos: idEvento, idSector, emailFuncionario", 400)
     exito, error = asignar_funcionario_sector(id_evento, id_sector, email)
     if exito:
         return _json_ok({"asignado": True})
-    return _json_error(error or "No se pudo asignar el funcionario", 500)
+    return _json_error(error or "Error: No se pudo asignar el funcionario", 500)
 
 
 @app.route("/asignacion", methods=["DELETE"])

@@ -54,6 +54,11 @@ def solicitar_transferencia(email_origen, email_destino, ids_entrada):
     try:
         conn.start_transaction()
 
+        cursor.execute("SELECT 1 FROM Usuario WHERE email = %s", (email_destino,))
+        if not cursor.fetchone():
+            conn.rollback()
+            return False, f"El usuario '{email_destino}' no existe en el sistema"
+
         placeholders = ", ".join(["%s"] * len(ids_entrada))
         cursor.execute(
             f"""
