@@ -165,6 +165,22 @@ def confirmar_pedido_venta(id_venta):
     return _transicionar_venta(id_venta, "pendiente", "confirmada")
 
 
+def pagar_venta_usuario(id_venta, email_comprador):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT emailComprador FROM Venta WHERE idVenta = %s", (id_venta,))
+        venta = cursor.fetchone()
+        if not venta:
+            return False, "Venta no encontrada"
+        if venta["emailComprador"] != email_comprador:
+            return False, "No podés pagar una venta que no es tuya"
+    finally:
+        cursor.close()
+        conn.close()
+    return _transicionar_venta(id_venta, "pendiente", "confirmada")
+
+
 def confirmar_pago_venta(id_venta):
     return _transicionar_venta(id_venta, "confirmada", "paga")
 

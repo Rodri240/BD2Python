@@ -13,7 +13,7 @@
   <div class="panel" style="grid-column: 1 / -1;">
     <h2>Solicitar transferencia</h2>
     <div class="form-grid">
-      <input id="t_emailOrigen" placeholder="Email origen" />
+      <input id="t_emailOrigen" placeholder="Email origen" readonly style="background:var(--surface2);color:var(--on-surface-variant);" />
       <input id="t_emailDestino" placeholder="Email destino" />
       <div class="actions full" style="grid-column: 1 / -1;">
         <button class="btn outlined" onclick="cargarEntradas()"><span class="material-symbols-outlined">download</span> Cargar entradas del origen</button>
@@ -88,11 +88,17 @@
   async function responderTransferenciaId(id, estado) {
     if (!confirm((estado === 'aceptada' ? 'Aceptar' : 'Rechazar') + ' la transferencia #' + id + '?')) return;
     try {
-      const res = await post('/transferencia/' + id, { estado: estado });
-      fill('resRespuestaTransferencia', res);
-      await cargarPendientes();
+      await post('/transferencia/' + id, { estado: estado });
+      const label = estado === 'aceptada' ? 'aceptada' : 'rechazada';
+      document.getElementById('resPendientes').innerHTML = `
+        <div style="color:var(--primary);font-weight:500;">
+          <span class="material-symbols-outlined" style="vertical-align:middle;font-size:18px;">check_circle</span>
+          Transferencia #${id} ${label} correctamente.
+        </div>
+      `;
+      setTimeout(() => cargarPendientes(), 2000);
     } catch (error) {
-      fill('resRespuestaTransferencia', error.message);
+      fill('resPendientes', error.message);
     }
   }
 
@@ -142,11 +148,18 @@
     const ids = Array.from(entradasSeleccionadas);
     if (!ids.length) { return; }
     try {
-      fill('resTransferencia', await post('/transferencia', {
+      const res = await post('/transferencia', {
         emailOrigen: t_emailOrigen.value.trim(),
         emailDestino: t_emailDestino.value.trim(),
         idsEntrada: ids,
-      }));
+      });
+      document.getElementById('resTransferencia').innerHTML = `
+        <div style="color:var(--primary);font-weight:500;">
+          <span class="material-symbols-outlined" style="vertical-align:middle;font-size:18px;">check_circle</span>
+          Transferencia solicitada correctamente — ${res.cantidad} entrada(s) enviada(s) a <strong>${escapeHtml(t_emailDestino.value.trim())}</strong>.
+        </div>
+        <p class="small-note" style="margin-top:6px;">El destinatario debe aceptarla para que la entrada cambie de propietario.</p>
+      `;
       entradasSeleccionadas.clear();
       document.getElementById('btnTransferir').disabled = true;
       document.getElementById('btnTransferir').innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;">send</span> Solicitar transferencia';
@@ -167,6 +180,10 @@
     }
   }
 
+  if (sesEmail) {
+    t_emailOrigen.value = sesEmail;
+    cargarEntradas();
+  }
   cargarPendientes();
 </script>
 {% endblock %}
