@@ -36,29 +36,28 @@ def crear_estadio(nombre, pais, ciudad, email_admin, fecha_asignacion):
         conn.close()
 
 
-def listar_estadios():
-    """
-    Lista todos los estadios registrados.
-    
-    Returns:
-        Lista de diccionarios con información de estadios
-    """
+def listar_estadios(email_admin=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(
-            """
-            SELECT
-                idEstadio,
-                nombre,
-                pais,
-                ciudad,
-                emailAdmin,
-                fechaAsignacion
-            FROM Estadio
-            ORDER BY nombre
-            """
-        )
+        if email_admin:
+            cursor.execute(
+                """
+                SELECT idEstadio, nombre, pais, ciudad, emailAdmin, fechaAsignacion
+                FROM Estadio
+                WHERE emailAdmin = %s
+                ORDER BY nombre
+                """,
+                (email_admin,),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT idEstadio, nombre, pais, ciudad, emailAdmin, fechaAsignacion
+                FROM Estadio
+                ORDER BY nombre
+                """
+            )
         return cursor.fetchall()
     finally:
         cursor.close()
@@ -91,31 +90,80 @@ def crear_sector(id_estadio, codigo, capacidad_maxima, costo_entrada):
         conn.close()
 
 
-def listar_sectores():
-    """
-    Lista todos los sectores de todos los estadios.
-    
-    Returns:
-        Lista de diccionarios con información de sectores
-    """
+def listar_sectores(email_admin=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(
-            """
-            SELECT
-                s.idSector,
-                s.idEstadio,
-                e.nombre AS estadio,
-                s.codigo,
-                s.capacidadMaxima,
-                s.costoEntrada
-            FROM Sector s
-            JOIN Estadio e ON e.idEstadio = s.idEstadio
-            ORDER BY e.nombre, s.codigo
-            """
-        )
+        if email_admin:
+            cursor.execute(
+                """
+                SELECT s.idSector, s.idEstadio, e.nombre AS estadio,
+                       s.codigo, s.capacidadMaxima, s.costoEntrada
+                FROM Sector s
+                JOIN Estadio e ON e.idEstadio = s.idEstadio
+                WHERE e.emailAdmin = %s
+                ORDER BY e.nombre, s.codigo
+                """,
+                (email_admin,),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT s.idSector, s.idEstadio, e.nombre AS estadio,
+                       s.codigo, s.capacidadMaxima, s.costoEntrada
+                FROM Sector s
+                JOIN Estadio e ON e.idEstadio = s.idEstadio
+                ORDER BY e.nombre, s.codigo
+                """
+            )
         return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def deshabilitar_sector_evento(id_evento, id_sector):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) FROM Entrada WHERE idEvento = %s AND idSector = %s",
+            (id_evento, id_sector),
+        )
+        if cursor.fetchone()[0] > 0:
+            return False, "No se puede deshabilitar: ya hay entradas vendidas en este sector para este evento"
+        cursor.execute(
+            "DELETE FROM Evento_Sector WHERE idEvento = %s AND idSector = %s",
+            (id_evento, id_sector),
+        )
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def eliminar_sector(id_sector):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) FROM Entrada WHERE idSector = %s",
+            (id_sector,),
+        )
+        if cursor.fetchone()[0] > 0:
+            return False, "No se puede eliminar: hay entradas vendidas en este sector"
+        cursor.execute("DELETE FROM Asignacion_Funcionario WHERE idSector = %s", (id_sector,))
+        cursor.execute("DELETE FROM Evento_Sector WHERE idSector = %s", (id_sector,))
+        cursor.execute("DELETE FROM Sector WHERE idSector = %s", (id_sector,))
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
     finally:
         cursor.close()
         conn.close()

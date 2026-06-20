@@ -115,18 +115,14 @@ def habilitar_sector_evento(id_evento, id_sector):
         conn.close()
 
 
-def listar_eventos():
-    """
-    Lista todos los eventos registrados con sus detalles.
-    
-    Returns:
-        Lista de diccionarios con información de eventos
-    """
+def listar_eventos(email_admin=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
+        where = "WHERE e.emailAdmin = %s" if email_admin else ""
+        params = (email_admin,) if email_admin else ()
         cursor.execute(
-            """
+            f"""
             SELECT
                 e.idEvento,
                 e.nombreEvento,
@@ -141,9 +137,11 @@ def listar_eventos():
             JOIN Estadio s ON s.idEstadio = e.idEstadio
             LEFT JOIN Evento_Equipo ee ON ee.idEvento = e.idEvento
             LEFT JOIN Equipo eq ON eq.idEquipo = ee.idEquipo
+            {where}
             GROUP BY e.idEvento, e.nombreEvento, e.fecha, e.hora, e.idEstadio, s.nombre, s.pais, s.ciudad
             ORDER BY e.fecha, e.hora
-            """
+            """,
+            params,
         )
         return cursor.fetchall()
     finally:

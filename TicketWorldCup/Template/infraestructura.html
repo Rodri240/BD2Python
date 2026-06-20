@@ -18,7 +18,7 @@
       <input id="est_nombre" placeholder="Estadio" />
       <input id="est_pais" placeholder="País" />
       <input id="est_ciudad" placeholder="Ciudad" />
-      <input id="est_emailAdmin" placeholder="Email admin" />
+      <input id="est_emailAdmin" type="hidden" />
       <input id="est_fechaAsignacion" class="full" type="date" />
     </div>
     <div class="actions">
@@ -58,7 +58,7 @@
       <select id="ev_idEstadio">
         <option value="">Selecciona un estadio</option>
       </select>
-      <input id="ev_emailAdmin" class="full" placeholder="Email admin" />
+      <input id="ev_emailAdmin" type="hidden" />
     </div>
     <div class="actions">
       <button class="btn" onclick="crearEvento()"><span class="material-symbols-outlined">event</span> Crear evento</button>
@@ -102,17 +102,17 @@
   </div>
 
   <div class="panel">
-    <h2>Habilitar sector en evento</h2>
-    <p class="small-note">Vincula un sector del estadio a un evento para que esté disponible para la venta de entradas.</p>
+    <h2>Habilitar / Deshabilitar sector en evento</h2>
+    <p class="small-note">Vincula o desvincula un sector del estadio a un evento.</p>
     <div class="form-grid">
       <div>
         <label class="field-label" for="es_idEvento">Evento</label>
-        <select id="es_idEvento">
+        <select id="es_idEvento" onchange="cargarSectoresHabilitados()">
           <option value="">Selecciona un evento</option>
         </select>
       </div>
       <div>
-        <label class="field-label" for="es_idSector">Sector</label>
+        <label class="field-label" for="es_idSector">Sector a habilitar</label>
         <select id="es_idSector">
           <option value="">Selecciona un evento primero</option>
         </select>
@@ -122,6 +122,7 @@
       <button class="btn tonal" onclick="habilitarSector()"><span class="material-symbols-outlined">check_circle</span> Habilitar sector</button>
     </div>
     <div class="result" id="resHabilitarSector"></div>
+    <div class="result" id="resSectoresHabilitados"></div>
   </div>
 
   <div class="panel">
@@ -269,14 +270,35 @@
   async function cargarSectores() {
     try {
       const data = await requestJSON('/sectores');
-      document.getElementById('resSectores').innerHTML = renderTable(data.sectores, [
-        { key: 'codigo', label: 'Código' },
-        { key: 'estadio', label: 'Estadio' },
-        { key: 'capacidadMaxima', label: 'Capacidad' },
-        { key: 'costoEntrada', label: 'Costo entrada' },
-      ]);
+      const sectores = data.sectores || [];
+      if (!sectores.length) {
+        document.getElementById('resSectores').innerHTML = '<span class="small-note">No hay sectores.</span>';
+        return;
+      }
+      document.getElementById('resSectores').innerHTML =
+        '<div style="overflow-x:auto;"><table><thead><tr><th>Código</th><th>Estadio</th><th>Capacidad</th><th>Costo</th><th>Acción</th></tr></thead><tbody>' +
+        sectores.map(s => `<tr>
+          <td>${escapeHtml(s.codigo)}</td>
+          <td>${escapeHtml(s.estadio)}</td>
+          <td>${s.capacidadMaxima}</td>
+          <td>$${s.costoEntrada}</td>
+          <td><button class="btn outlined" style="padding:4px 12px;font-size:0.82rem;" onclick="eliminarSector(${s.idSector},'${escapeHtml(s.codigo)}','${escapeHtml(s.estadio)}')">
+            <span class="material-symbols-outlined" style="font-size:16px;">delete</span> Eliminar
+          </button></td>
+        </tr>`).join('') + '</tbody></table></div>';
     } catch (error) {
       fill('resSectores', error.message);
+    }
+  }
+
+  async function eliminarSector(idSector, codigo, estadio) {
+    if (!confirm(`¿Eliminar el sector ${codigo} del estadio ${estadio}? Solo es posible si no hay entradas vendidas.`)) return;
+    try {
+      await requestJSON(`/sector/${idSector}`, { method: 'DELETE' });
+      fill('resSector', { mensaje: `Sector ${codigo} eliminado correctamente` });
+      await cargarSectores();
+    } catch (error) {
+      fill('resSector', error.message);
     }
   }
 
@@ -512,15 +534,55 @@
         idEvento: es_idEvento.value,
         idSector: es_idSector.value,
       });
-
       const sectorSel = document.getElementById('es_idSector');
       const sectorTexto = sectorSel.options[sectorSel.selectedIndex]?.text || '';
       fill('resHabilitarSector', { mensaje: `Sector habilitado correctamente: ${sectorTexto}` });
       await cargarEventos();
       await cargarSectoresDisponiblesEvento();
-      if (af_idEvento.value) {
-        await cargarSectoresEventoAF();
+      await cargarSectoresHabilitados();
+      if (af_idEvento.value) await cargarSectoresEventoAF();
+    } catch (error) {
+      fill('resHabilitarSector', error.message);
+    }
+  }
+
+  async function cargarSectoresHabilitados() {
+    const idEvento = es_idEvento.value;
+    const el = document.getElementById('resSectoresHabilitados');
+    if (!idEvento) { el.innerHTML = ''; return; }
+    try {
+      const data = await requestJSON(`/eventos/${idEvento}/sectores`);
+      const sectores = data.sectores || [];
+      if (!sectores.length) {
+        el.innerHTML = '<span class="small-note">No hay sectores habilitados para este evento.</span>';
+        return;
       }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>Sector</th><th>Capacidad</th><th>Costo</th><th>Vendidas</th><th>Disponibles</th><th>Acción</th></tr></thead><tbody>' +
+        sectores.map(s => `<tr>
+          <td>${escapeHtml(s.codigo)}</td>
+          <td>${s.capacidadMaxima}</td>
+          <td>$${s.costoEntrada}</td>
+          <td>${s.entradasVendidas}</td>
+          <td>${s.entradasDisponibles}</td>
+          <td><button class="btn outlined" style="padding:4px 12px;font-size:0.82rem;" onclick="deshabilitarSector(${idEvento},${s.idSector},'${escapeHtml(s.codigo)}')">
+            <span class="material-symbols-outlined" style="font-size:16px;">remove_circle</span> Deshabilitar
+          </button></td>
+        </tr>`).join('') + '</tbody></table></div>';
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  async function deshabilitarSector(idEvento, idSector, codigo) {
+    if (!confirm(`¿Deshabilitar el sector ${codigo} de este evento? Solo es posible si no hay entradas vendidas.`)) return;
+    try {
+      await requestJSON('/evento/sector', {
+        method: 'DELETE',
+        body: JSON.stringify({ idEvento, idSector }),
+      });
+      fill('resHabilitarSector', { mensaje: `Sector ${codigo} deshabilitado correctamente` });
+      await cargarSectoresDisponiblesEvento();
+      await cargarSectoresHabilitados();
     } catch (error) {
       fill('resHabilitarSector', error.message);
     }
