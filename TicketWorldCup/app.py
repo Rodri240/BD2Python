@@ -42,6 +42,9 @@ from Database import (
     actualizar_roles_usuario,
     registrar_venta_y_entradas,
     ejecutar_transaccion_venta,
+    confirmar_pedido_venta,
+    confirmar_pago_venta,
+    listar_ventas_pendientes,
     listar_compras_usuario,
     listar_entradas_usuario,
     listar_transferencias_usuario,
@@ -165,6 +168,7 @@ def index():
     return render_template(
         "index.html",
         session_email=session.get("user_email"),
+        session_roles=session.get("user_roles", {}),
     )
 
 
@@ -203,6 +207,8 @@ def login():
 
 @app.route("/registro", methods=["GET"])
 def registro():
+    if not _es_admin_activo():
+        return redirect(url_for("home"))
     return render_template("registro.html", session_email=session.get("user_email"))
 
 
@@ -264,7 +270,11 @@ def validacion():
 
 @app.route("/consultas", methods=["GET"])
 def consultas():
-    return render_template("consultas.html", session_email=session.get("user_email"))
+    return render_template(
+        "consultas.html",
+        session_email=session.get("user_email"),
+        session_roles=session.get("user_roles", {}),
+    )
 
 
 @app.route("/sesion", methods=["POST"])
@@ -522,6 +532,36 @@ def ruta_compra_multiple():
     if id_venta:
         return _json_ok({"idVenta": id_venta})
     return _json_error("No se pudo registrar la compra múltiple", 500)
+
+
+@app.route("/ventas/pendientes", methods=["GET"])
+def ruta_ventas_pendientes():
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    return _json_ok({"ventas": listar_ventas_pendientes()})
+
+
+@app.route("/venta/<int:id_venta>/confirmar-pedido", methods=["POST"])
+def ruta_confirmar_pedido(id_venta):
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    exito, error = confirmar_pedido_venta(id_venta)
+    if exito:
+        return _json_ok({"confirmado": True})
+    return _json_error(error or "No se pudo confirmar el pedido", 400)
+
+
+@app.route("/venta/<int:id_venta>/confirmar-pago", methods=["POST"])
+def ruta_confirmar_pago(id_venta):
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    exito, error = confirmar_pago_venta(id_venta)
+    if exito:
+        return _json_ok({"confirmada": True})
+    return _json_error(error or "No se pudo confirmar el pago", 400)
 
 
 @app.route("/usuario/<string:email>/compras", methods=["GET"])

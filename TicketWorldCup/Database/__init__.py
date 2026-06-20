@@ -65,6 +65,9 @@ from .dispositivos import (
 from .compras import (
     registrar_venta_y_entradas,
     ejecutar_transaccion_venta,
+    confirmar_pedido_venta,
+    confirmar_pago_venta,
+    listar_ventas_pendientes,
     listar_compras_usuario,
     listar_entradas_usuario,
 )
@@ -140,6 +143,9 @@ __all__ = [
     # Compras
     "registrar_venta_y_entradas",
     "ejecutar_transaccion_venta",
+    "confirmar_pedido_venta",
+    "confirmar_pago_venta",
+    "listar_ventas_pendientes",
     "listar_compras_usuario",
     "listar_entradas_usuario",
     # Transferencias
