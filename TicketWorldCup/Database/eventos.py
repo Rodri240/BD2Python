@@ -309,25 +309,46 @@ def listar_sectores_evento(id_evento):
         conn.close()
 
 
-def listar_entradas_no_validadas_por_evento(id_evento):
+def listar_entradas_no_validadas_por_evento(id_evento, email_funcionario=None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute(
-            """
-            SELECT e.idEntrada, e.emailPropietario, e.idSector, s.codigo AS sectorCodigo,
-                   e.estado, e.cantTransferencias
-            FROM Entrada e
-            JOIN Sector s ON s.idSector = e.idSector
-            WHERE e.idEvento = %s
-              AND e.estado != 'consumida'
-              AND e.idEntrada NOT IN (
-                  SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
-              )
-            ORDER BY s.codigo, e.emailPropietario
-            """,
-            (id_evento,),
-        )
+        if email_funcionario:
+            cursor.execute(
+                """
+                SELECT e.idEntrada, e.emailPropietario, e.idSector, s.codigo AS sectorCodigo,
+                       e.estado, e.cantTransferencias
+                FROM Entrada e
+                JOIN Sector s ON s.idSector = e.idSector
+                JOIN Asignacion_Funcionario af
+                    ON af.idEvento = e.idEvento
+                    AND af.idSector = e.idSector
+                    AND af.emailFuncionario = %s
+                WHERE e.idEvento = %s
+                  AND e.estado != 'consumida'
+                  AND e.idEntrada NOT IN (
+                      SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
+                  )
+                ORDER BY s.codigo, e.emailPropietario
+                """,
+                (email_funcionario, id_evento),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT e.idEntrada, e.emailPropietario, e.idSector, s.codigo AS sectorCodigo,
+                       e.estado, e.cantTransferencias
+                FROM Entrada e
+                JOIN Sector s ON s.idSector = e.idSector
+                WHERE e.idEvento = %s
+                  AND e.estado != 'consumida'
+                  AND e.idEntrada NOT IN (
+                      SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
+                  )
+                ORDER BY s.codigo, e.emailPropietario
+                """,
+                (id_evento,),
+            )
         return cursor.fetchall()
     finally:
         cursor.close()

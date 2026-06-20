@@ -112,6 +112,7 @@ def cobertura_evento_completa(id_evento):
                 af.emailFuncionario,
                 af.idSector,
                 s.codigo AS sectorCodigo,
+                COUNT(DISTINCT en.idEntrada) AS totalEntradas,
                 COUNT(DISTINCT ve.idValidacion) AS validaciones
             FROM Asignacion_Funcionario af
             JOIN Sector s ON s.idSector = af.idSector
@@ -137,6 +138,8 @@ def cobertura_evento_completa(id_evento):
                 "idSector": fila["idSector"],
                 "sectorCodigo": fila["sectorCodigo"],
                 "validaciones": fila["validaciones"],
+                "totalEntradas": fila["totalEntradas"],
+                "faltantes": fila["totalEntradas"] - fila["validaciones"],
                 "cumple": cumple,
             })
             if not cumple:
