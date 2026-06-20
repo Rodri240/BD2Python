@@ -6,6 +6,20 @@
 <section class="page-grid">
   <div class="hero-card">
     <p class="eyebrow">Ticket World Cup</p>
+    {% if session_roles.get('funcionario') and not session_roles.get('admin') %}
+    <h1>Panel de validación</h1>
+    <p class="hero-copy">
+      Revisá los próximos eventos y validá las entradas de los asistentes con tu dispositivo registrado.
+    </p>
+    <div class="badge-row">
+      <span class="badge"><span class="material-symbols-outlined">qr_code_scanner</span> Escáner QR</span>
+      <span class="badge"><span class="material-symbols-outlined">verified_user</span> Cobertura por sector</span>
+      <span class="badge"><span class="material-symbols-outlined">devices</span> Dispositivos autorizados</span>
+    </div>
+    <div class="actions" style="margin-top:18px;">
+      <a class="btn tonal" href="{{ url_for('validacion') }}"><span class="material-symbols-outlined">qr_code_scanner</span> Ir a validación</a>
+    </div>
+    {% else %}
     <h1>Tu lugar para el Mundial 2026</h1>
     <p class="hero-copy">
       Comprá tus entradas, transferilas a quien quieras y presentá tu QR en la puerta.
@@ -23,6 +37,7 @@
       <a class="btn tonal" href="{{ url_for('compras') }}"><span class="material-symbols-outlined">shopping_cart</span> Comprar entradas</a>
       <a class="btn outlined" href="{{ url_for('consultas') }}"><span class="material-symbols-outlined">bar_chart</span> Ver reportes</a>
     </div>
+    {% endif %}
   </div>
 
   <div class="panel" style="align-self:start;">
@@ -68,7 +83,23 @@
 
   let _todosEventos = [];
 
+  const esFuncionario = sessionRoles.funcionario && !sessionRoles.admin;
+  const hoy = new Date().toISOString().slice(0, 10);
+
   function eventoHTML(e) {
+    let accion;
+    if (esFuncionario) {
+      const esHoy = e.fecha === hoy;
+      accion = esHoy
+        ? `<a class="btn tonal" href="/validacion?evento=${e.idEvento}" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+             <span class="material-symbols-outlined" style="font-size:15px;">qr_code_scanner</span> Validar
+           </a>`
+        : `<span style="flex-shrink:0;font-size:0.78rem;color:var(--on-surface-variant);padding:6px 14px;">Disponible el ${escapeHtml(e.fecha)}</span>`;
+    } else {
+      accion = `<a class="btn tonal" href="/compras" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+        <span class="material-symbols-outlined" style="font-size:15px;">shopping_cart</span> Comprar
+      </a>`;
+    }
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border-radius:10px;padding:12px 16px;">
       <div style="display:flex;align-items:center;gap:12px;min-width:0;">
         <span class="material-symbols-outlined" style="color:var(--primary);flex-shrink:0;">stadium</span>
@@ -77,9 +108,7 @@
           <div style="font-size:0.78rem;color:var(--on-surface-variant);">${escapeHtml(e.fecha)} · ${escapeHtml(e.hora || '')} · ${escapeHtml(e.ciudadEstadio || e.estadio || '')}</div>
         </div>
       </div>
-      <a class="btn tonal" href="/compras" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
-        <span class="material-symbols-outlined" style="font-size:15px;">shopping_cart</span> Comprar
-      </a>
+      ${accion}
     </div>`;
   }
 

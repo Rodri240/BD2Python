@@ -486,7 +486,9 @@ def ruta_sectores_disponibles_evento(id_evento):
 
 @app.route("/eventos/<int:id_evento>/entradas-no-validadas", methods=["GET"])
 def ruta_entradas_no_validadas_evento(id_evento):
-    return _json_ok({"entradas": listar_entradas_no_validadas_por_evento(id_evento)})
+    roles = session.get("user_roles", {})
+    email_func = session.get("user_email") if roles.get("funcionario") and not roles.get("admin") else None
+    return _json_ok({"entradas": listar_entradas_no_validadas_por_evento(id_evento, email_func)})
 
 
 @app.route("/eventos/<int:id_evento>/entradas-validadas", methods=["GET"])

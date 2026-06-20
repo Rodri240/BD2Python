@@ -91,6 +91,15 @@
         document.getElementById('va_idEvento').value = this.value;
         document.getElementById('cob_idEvento').value = this.value;
       });
+
+      const params = new URLSearchParams(window.location.search);
+      const eventoParam = params.get('evento');
+      if (eventoParam) {
+        for (const id of ['le_idEvento', 'va_idEvento', 'cob_idEvento']) {
+          document.getElementById(id).value = eventoParam;
+        }
+        await cargarEntradasPendientes();
+      }
     } catch (_) {}
   }
 
@@ -112,16 +121,23 @@
         const sectores = f.sectores.map(s => {
           const color = s.cumple ? '#1a7a4a' : '#c0392b';
           const icon = s.cumple ? '&#10003;' : '&#9888;';
-          return `<span style="margin-right:10px;color:${color};">${icon} Sector ${escapeHtml(s.sectorCodigo)} (${s.validaciones} val.)</span>`;
+          return `<span style="margin-right:10px;color:${color};">${icon} Sector ${escapeHtml(s.sectorCodigo)}</span>`;
+        }).join('');
+        const progreso = f.sectores.map(s => {
+          const colorBg  = s.faltantes === 0 ? '#d1fae5' : '#fef3c7';
+          const colorTxt = s.faltantes === 0 ? '#1a7a4a' : '#b45309';
+          const label = s.faltantes > 0 ? ` — faltan ${s.faltantes}` : '';
+          return `<span style="margin-right:6px;background:${colorBg};color:${colorTxt};padding:2px 8px;border-radius:999px;font-size:0.78rem;font-weight:600;">Sector ${escapeHtml(s.sectorCodigo)}: ${s.validaciones}/${s.totalEntradas}${label}</span>`;
         }).join('');
         return `<tr>
           <td>${escapeHtml(f.emailFuncionario)}</td>
           <td>${sectores}</td>
+          <td>${progreso}</td>
           <td>${badge}</td>
         </tr>`;
       }).join('');
       el.innerHTML = `<div style="overflow-x:auto;"><table>
-        <thead><tr><th>Funcionario</th><th>Sectores asignados</th><th>Cobertura</th></tr></thead>
+        <thead><tr><th>Funcionario</th><th>Sectores asignados</th><th>Progreso de escaneo</th><th>Cobertura</th></tr></thead>
         <tbody>${filas}</tbody>
       </table></div>`;
     } catch (error) {
