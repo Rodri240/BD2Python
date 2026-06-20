@@ -6,47 +6,32 @@
 <section class="page-grid">
   <div class="hero-card">
     <p class="eyebrow">Ticket World Cup</p>
-    <h1>Demo web para validar toda la letra</h1>
+    <h1>Tu lugar para el Mundial 2026</h1>
     <p class="hero-copy">
-      Esta aplicación ahora está dividida en páginas reales. Desde el header podés entrar a registro, perfil,
-      infraestructura, compras, transferencias, validación y consultas, con la misma lógica SQL detrás.
+      Comprá tus entradas, transferilas a quien quieras y presentá tu QR en la puerta.
+      Todo desde acá.
     </p>
     <div class="badge-row">
-      <span class="badge"><span class="material-symbols-outlined">confirmation_number</span> Compra máx. 5 entradas</span>
-      <span class="badge"><span class="material-symbols-outlined">swap_horiz</span> Transferencia máx. 3 veces</span>
-      <span class="badge"><span class="material-symbols-outlined">qr_code</span> QR expira cada 30 s</span>
-      <span class="badge"><span class="material-symbols-outlined">pages</span> Navegación por páginas reales</span>
+      <span class="badge"><span class="material-symbols-outlined">confirmation_number</span> Hasta 5 entradas por compra</span>
+      <span class="badge"><span class="material-symbols-outlined">swap_horiz</span> Transferencia entre usuarios</span>
+      <span class="badge"><span class="material-symbols-outlined">qr_code</span> QR dinámico en tu celular</span>
     </div>
     <div class="actions" style="margin-top:18px;">
       {% if session_roles.get('admin') %}
       <a class="btn" href="{{ url_for('registro') }}"><span class="material-symbols-outlined">person_add</span> Ir a registro</a>
       {% endif %}
-      <a class="btn tonal" href="{{ url_for('compras') }}"><span class="material-symbols-outlined">shopping_cart</span> Ir a compras</a>
+      <a class="btn tonal" href="{{ url_for('compras') }}"><span class="material-symbols-outlined">shopping_cart</span> Comprar entradas</a>
       <a class="btn outlined" href="{{ url_for('consultas') }}"><span class="material-symbols-outlined">bar_chart</span> Ver reportes</a>
     </div>
   </div>
 
-  <div class="side-grid">
-    <div class="metric">
-      <div class="metric-icon"><span class="material-symbols-outlined">web</span></div>
-      <div class="metric-content">
-        <div class="value">8</div>
-        <div class="label">Páginas principales</div>
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-icon"><span class="material-symbols-outlined">layers</span></div>
-      <div class="metric-content">
-        <div class="value">1</div>
-        <div class="label">Base común compartida</div>
-      </div>
-    </div>
-    <div class="metric">
-      <div class="metric-icon"><span class="material-symbols-outlined">database</span></div>
-      <div class="metric-content">
-        <div class="value">SQL</div>
-        <div class="label">Toda la lógica sigue en la base</div>
-      </div>
+  <div class="panel" style="align-self:start;">
+    <p class="eyebrow">Próximos eventos</p>
+    <div id="listaEventosHome" style="display:flex;flex-direction:column;gap:8px;margin-top:12px;"></div>
+    <div id="verMasEventos" style="display:none;margin-top:12px;">
+      <button class="btn outlined" style="width:100%;" onclick="mostrarTodosEventos()">
+        <span class="material-symbols-outlined">expand_more</span> Ver más eventos
+      </button>
     </div>
   </div>
 
@@ -80,6 +65,55 @@
     document.getElementById('seccionMisEntradas').style.display = 'block';
     cargarEntradas();
   }
+
+  let _todosEventos = [];
+
+  function eventoHTML(e) {
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border-radius:10px;padding:12px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+        <span class="material-symbols-outlined" style="color:var(--primary);flex-shrink:0;">stadium</span>
+        <div style="min-width:0;">
+          <div style="font-weight:600;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.nombreEvento)}</div>
+          <div style="font-size:0.78rem;color:var(--on-surface-variant);">${escapeHtml(e.fecha)} · ${escapeHtml(e.hora || '')} · ${escapeHtml(e.ciudadEstadio || e.estadio || '')}</div>
+        </div>
+      </div>
+      <a class="btn tonal" href="/compras" style="flex-shrink:0;padding:6px 14px;font-size:0.8rem;text-decoration:none;">
+        <span class="material-symbols-outlined" style="font-size:15px;">shopping_cart</span> Comprar
+      </a>
+    </div>`;
+  }
+
+  function mostrarTodosEventos() {
+    document.getElementById('listaEventosHome').innerHTML = _todosEventos.map(eventoHTML).join('');
+    document.getElementById('verMasEventos').style.display = 'none';
+  }
+
+  async function cargarProximosEventos() {
+    const el = document.getElementById('listaEventosHome');
+    try {
+      const data = await requestJSON('/eventos');
+      const hoy = new Date().toISOString().slice(0, 10);
+      _todosEventos = (data.eventos || [])
+        .filter(e => e.fecha >= hoy)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha) || (a.hora || '').localeCompare(b.hora || ''));
+
+      if (!_todosEventos.length) {
+        el.innerHTML = '<span class="small-note">No hay eventos próximos programados.</span>';
+        return;
+      }
+
+      const visibles = _todosEventos.slice(0, 3);
+      el.innerHTML = visibles.map(eventoHTML).join('');
+
+      if (_todosEventos.length > 3) {
+        document.getElementById('verMasEventos').style.display = 'block';
+      }
+    } catch (_) {
+      el.innerHTML = '<span class="small-note">No se pudieron cargar los eventos.</span>';
+    }
+  }
+
+  cargarProximosEventos();
 
   async function cargarEntradas() {
     try {
