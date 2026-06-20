@@ -539,7 +539,7 @@
 
     function renderJson(value) {
       if (value === null || value === undefined) {
-        return '<span class="small-note">sin datos</span>';
+        return '<span class="small-note">Sin Datos</span>';
       }
 
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -548,7 +548,7 @@
 
       if (Array.isArray(value)) {
         if (!value.length) {
-          return '<span class="small-note">sin datos</span>';
+          return '<span class="small-note">Sin Datos</span>';
         }
 
         const headers = [...new Set(value.flatMap((item) => (item && typeof item === 'object' && !Array.isArray(item)) ? Object.keys(item) : []))];
@@ -568,7 +568,7 @@
       if (typeof value === 'object') {
         const entries = Object.entries(value);
         if (!entries.length) {
-          return '<span class="small-note">sin datos</span>';
+          return '<span class="small-note">Sin Datos</span>';
         }
 
         const rows = entries.map(([key, item]) => `
@@ -621,7 +621,7 @@
     async function clearSession() {
       await post('/salir', {});
       const sessionUser = document.getElementById('sessionUser');
-      if (sessionUser) sessionUser.textContent = 'sin sesión';
+      if (sessionUser) sessionUser.textContent = 'Sin Sesión';
     }
   </script>
   {% block scripts %}{% endblock %}
