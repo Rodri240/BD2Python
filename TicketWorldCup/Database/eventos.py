@@ -12,8 +12,32 @@ except ImportError:
 
 def crear_evento(nombre_evento, fecha, hora, id_estadio, email_admin):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
     try:
+        # Verificar solapamiento: no puede haber otro evento en el mismo estadio
+        # en la misma fecha con menos de 4 horas de diferencia (duración estimada de un partido)
+        cursor.execute(
+            """
+            SELECT idEvento, nombreEvento, TIME_FORMAT(hora, '%H:%i') AS hora
+            FROM Evento
+            WHERE idEstadio = %s
+              AND fecha = %s
+              AND ABS(TIME_TO_SEC(hora) - TIME_TO_SEC(%s)) < 14400
+            LIMIT 1
+            """,
+            (id_estadio, fecha, hora),
+        )
+        conflicto = cursor.fetchone()
+        if conflicto:
+            hora_conflicto = conflicto["hora"]
+            return False, (
+                f"El estadio ya tiene el evento '{conflicto['nombreEvento']}' "
+                f"a las {hora_conflicto} en esa fecha. "
+                f"Debe haber al menos 4 horas de diferencia entre eventos en el mismo recinto."
+            )
+
+        cursor.close()
+        cursor = conn.cursor()
         cursor.execute(
             """
             INSERT INTO Evento (nombreEvento, fecha, hora, idEstadio, emailAdmin)
@@ -107,7 +131,7 @@ def listar_eventos():
                 e.idEvento,
                 e.nombreEvento,
                 e.fecha,
-                e.hora,
+                TIME_FORMAT(e.hora, '%H:%i') AS hora,
                 e.idEstadio,
                 s.nombre AS estadio,
                 s.pais AS paisEstadio,

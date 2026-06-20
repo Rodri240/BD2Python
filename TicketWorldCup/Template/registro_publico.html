@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Registrarse | Ticket World Cup{% endblock %}
+
+{% block content %}
+<section class="page-grid" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; min-height: calc(100vh - 180px);">
+  <div class="hero-card" style="position: sticky; top: 24px;">
+    <p class="eyebrow">Nuevo usuario</p>
+    <h1>Creá tu cuenta</h1>
+    <p class="hero-copy">
+      Registrate para comprar entradas al Mundial 2026, transferirlas y gestionar tus activos digitales.
+    </p>
+    <div class="badge-row">
+      <span class="badge"><span class="material-symbols-outlined">confirmation_number</span> Compra de entradas</span>
+      <span class="badge"><span class="material-symbols-outlined">swap_horiz</span> Transferencias</span>
+      <span class="badge"><span class="material-symbols-outlined">qr_code</span> QR dinámico</span>
+    </div>
+    <p style="margin-top: 24px; font-size: 0.88rem; color: var(--on-surface-variant);">
+      ¿Ya tenés cuenta?
+      <a href="{{ url_for('login') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Iniciá sesión</a>
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2>Datos personales</h2>
+    <div class="form-grid">
+      <input id="r_email" type="email" placeholder="Email *" class="full" />
+      <input id="r_passw" type="password" placeholder="Contraseña *" class="full" />
+
+      <select id="r_docPais" class="select-pais"><option value="">País del documento *</option></select>
+      <select id="r_docTipo">
+        <option value="">Tipo de documento *</option>
+        <option value="CI">Cédula de Identidad (CI)</option>
+        <option value="DNI">Documento Nacional de Identidad (DNI)</option>
+        <option value="PAS">Pasaporte</option>
+        <option value="SSN">Número de Seguro Social (SSN - USA)</option>
+      </select>
+      <input id="r_docNumero" placeholder="Número de documento *" class="full" />
+
+      <select id="r_dirPais" class="select-pais"><option value="">País (dirección) *</option></select>
+      <input id="r_dirLocalidad" placeholder="Localidad *" />
+      <input id="r_dirCalle" placeholder="Calle *" />
+      <input id="r_dirNumero" placeholder="Número *" />
+      <input id="r_dirCodigoPostal" placeholder="Código postal *" />
+
+      <input id="r_telefonos" class="full" placeholder="Teléfonos de Contacto (separados por coma)" />
+    </div>
+
+    <div class="actions" style="margin-top: 20px;">
+      <button class="btn" onclick="registrarse()">
+        <span class="material-symbols-outlined">person_add</span> Crear cuenta
+      </button>
+      <a class="btn outlined" href="{{ url_for('login') }}">
+        <span class="material-symbols-outlined">arrow_back</span> Volver
+      </a>
+    </div>
+    <div class="result" id="resRegistro"></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const PAISES = [
+    "Uruguay","Argentina","Brasil","Chile","Paraguay","Bolivia","Colombia","Ecuador","Perú","Venezuela",
+    "México","USA","Canadá","Costa Rica","Honduras","Guatemala","El Salvador","Nicaragua","Panamá","Cuba",
+    "República Dominicana","Haití","Jamaica","Trinidad y Tobago","Barbados","Bahamas",
+    "Alemania","Francia","España","Italia","Portugal","Inglaterra","Países Bajos","Bélgica","Suiza","Austria",
+    "Polonia","Croacia","Serbia","Eslovenia","Eslovaquia","República Checa","Hungría","Rumanía","Bulgaria","Grecia",
+    "Suecia","Noruega","Dinamarca","Finlandia","Islandia","Irlanda","Escocia","Gales",
+    "Rusia","Ucrania","Turquía","Georgia","Armenia","Azerbaiyán",
+    "Marruecos","Senegal","Nigeria","Camerún","Ghana","Costa de Marfil","Túnez","Argelia","Egipto","Sudáfrica",
+    "Japón","Corea del Sur","Arabia Saudita","Irán","Qatar","Australia","Nueva Zelanda",
+    "China","India","Indonesia","Filipinas","Tailandia","Vietnam","Malasia",
+    "Albania","Andorra","Bosnia y Herzegovina","Bielorrusia","Estonia","Letonia","Lituania","Luxemburgo",
+    "Malta","Moldavia","Montenegro","Macedonia del Norte","San Marino","Kosovo"
+  ].sort((a, b) => a.localeCompare(b, 'es'));
+
+  function poblarSelectPaises() {
+    const opciones = PAISES.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.querySelectorAll('.select-pais').forEach(sel => {
+      sel.innerHTML = sel.options[0].outerHTML + opciones;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', poblarSelectPaises);
+</script>
+<script>
+  async function registrarse() {
+    const el = document.getElementById('resRegistro');
+
+    const email = document.getElementById('r_email').value.trim();
+    const passw = document.getElementById('r_passw').value;
+    const docPais = document.getElementById('r_docPais').value.trim();
+    const docTipo = document.getElementById('r_docTipo').value.trim();
+    const docNumero = document.getElementById('r_docNumero').value.trim();
+    const dirPais = document.getElementById('r_dirPais').value.trim();
+    const dirLocalidad = document.getElementById('r_dirLocalidad').value.trim();
+    const dirCalle = document.getElementById('r_dirCalle').value.trim();
+    const dirNumero = document.getElementById('r_dirNumero').value.trim();
+    const dirCodigoPostal = document.getElementById('r_dirCodigoPostal').value.trim();
+    const telefonos = document.getElementById('r_telefonos').value.trim();
+
+    if (!email || !passw || !docPais || !docTipo || !docNumero || !dirPais || !dirLocalidad || !dirCalle || !dirNumero || !dirCodigoPostal) {
+      el.innerHTML = '<span style="color:var(--error);">Completá todos los campos obligatorios.</span>';
+      return;
+    }
+
+    try {
+      const res = await post('/registrarse', {
+        email, passw, docPais, docTipo, docNumero,
+        dirPais, dirLocalidad, dirCalle, dirNumero, dirCodigoPostal,
+        telefonos,
+      });
+
+      el.innerHTML = `
+        <div style="color:var(--primary);font-weight:500;margin-bottom:8px;">
+          <span class="material-symbols-outlined" style="vertical-align:middle;font-size:18px;">check_circle</span>
+          ¡Cuenta creada correctamente!
+        </div>
+        <p style="font-size:0.88rem;color:var(--on-surface-variant);">
+          Ya podés <a href="{{ url_for('login') }}" style="color:var(--primary);font-weight:500;">iniciar sesión</a> con tu email y contraseña.
+        </p>
+      `;
+
+      // Limpiar el formulario
+      ['r_email','r_passw','r_docPais','r_docTipo','r_docNumero',
+       'r_dirPais','r_dirLocalidad','r_dirCalle','r_dirNumero','r_dirCodigoPostal','r_telefonos']
+        .forEach(id => { document.getElementById(id).value = ''; });
+
+    } catch (error) {
+      el.innerHTML = '<span style="color:var(--error);">' + escapeHtml(error.message) + '</span>';
+    }
+  }
+</script>
+{% endblock %}

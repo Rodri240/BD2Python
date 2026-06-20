@@ -72,7 +72,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      flex-wrap: nowrap;
+      gap: 12px;
       background: var(--md-surface);
       border-radius: var(--md-radius-lg);
       box-shadow: var(--md-elevation-2);
@@ -133,16 +134,16 @@
 
     .nav-links {
       display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
+      flex-wrap: nowrap;
+      gap: 2px;
     }
 
     .nav-links a {
       text-decoration: none;
       color: var(--md-on-surface-variant);
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      padding: 8px 14px;
+      padding: 6px 10px;
       border-radius: var(--md-radius-full);
       transition: background 0.15s ease, color 0.15s ease;
     }
@@ -470,19 +471,18 @@
 <body>
   <div class="wrap">
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
-        <div class="brand-text">
-          <strong>Ticket World Cup</strong>
-          <span>Demo funcional</span>
+      <div style="display:flex;align-items:center;gap:4px;">
+        {% block nav_back %}{% endblock %}
+        <div class="brand">
+          <div class="brand-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
+          <div class="brand-text">
+            <strong>Ticket World Cup</strong>
+            <span>Demo funcional</span>
+          </div>
         </div>
       </div>
       {% if session_email %}
       <div class="session-area">
-        <span class="session-chip">
-          <span class="material-symbols-outlined">account_circle</span>
-          <strong>{{ session_email }}</strong>
-        </span>
         <nav class="nav-links" aria-label="Navegación principal">
           {% set roles = session.get('user_roles', {}) %}
           {% if roles.get('admin') %}
@@ -505,6 +505,18 @@
           <a href="{{ url_for('consultas') }}">Consultas</a>
           {% endif %}
         </nav>
+        <span class="session-chip">
+          <span class="material-symbols-outlined">account_circle</span>
+          <strong>{{ session_email }}</strong>
+          {% set roles = session.get('user_roles', {}) %}
+          {% if roles.get('admin') %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-primary);color:var(--md-on-primary);padding:2px 8px;border-radius:999px;">Admin</span>
+          {% elif roles.get('funcionario') %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-secondary-container);color:var(--md-on-secondary-container);padding:2px 8px;border-radius:999px;">Funcionario</span>
+          {% else %}
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-surface-variant);color:var(--md-on-surface-variant);padding:2px 8px;border-radius:999px;">Usuario</span>
+          {% endif %}
+        </span>
         <form class="logout-form" action="{{ url_for('logout') }}" method="post">
           <button type="submit"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">logout</span> Salir</button>
         </form>

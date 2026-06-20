@@ -513,7 +513,9 @@
         idSector: es_idSector.value,
       });
 
-      fill('resHabilitarSector', { mensaje: 'Sector habilitado correctamente', habilitado: respuesta.habilitado });
+      const sectorSel = document.getElementById('es_idSector');
+      const sectorTexto = sectorSel.options[sectorSel.selectedIndex]?.text || '';
+      fill('resHabilitarSector', { mensaje: `Sector habilitado correctamente: ${sectorTexto}` });
       await cargarEventos();
       await cargarSectoresDisponiblesEvento();
       if (af_idEvento.value) {

@@ -191,7 +191,7 @@ def listar_entradas_usuario(email_propietario):
                 ev.idEvento,
                 ev.nombreEvento,
                 ev.fecha,
-                ev.hora,
+                TIME_FORMAT(ev.hora, '%H:%i') AS hora,
                 s.nombre AS estadio,
                 s.ciudad,
                 v.numero AS numeroVenta,

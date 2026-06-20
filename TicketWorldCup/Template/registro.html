@@ -15,10 +15,16 @@
     <div class="form-grid">
       <input id="u_email" placeholder="Email" />
       <input id="u_passw" placeholder="Contraseña" type="password" />
-      <input id="u_docPais" placeholder="País doc" />
-      <input id="u_docTipo" placeholder="Tipo doc" />
+      <select id="u_docPais" class="select-pais"><option value="">País doc</option></select>
+      <select id="u_docTipo">
+        <option value="">Tipo doc</option>
+        <option value="CI">CI</option>
+        <option value="DNI">DNI</option>
+        <option value="PAS">Pasaporte</option>
+        <option value="SSN">Número de Seguro Social (SSN - USA)</option>
+      </select>
       <input id="u_docNumero" placeholder="Número doc" />
-      <input id="u_dirPais" placeholder="País dirección" />
+      <select id="u_dirPais" class="select-pais"><option value="">País dirección</option></select>
       <input id="u_dirLocalidad" placeholder="Localidad" />
       <input id="u_dirCalle" placeholder="Calle" />
       <input id="u_dirNumero" placeholder="Número" />
@@ -34,15 +40,22 @@
     <div class="form-grid">
       <input id="a_email" placeholder="Email" />
       <input id="a_passw" placeholder="Contraseña" type="password" />
-      <input id="a_docPais" placeholder="País doc" />
-      <input id="a_docTipo" placeholder="Tipo doc" />
+      <select id="a_docPais" class="select-pais"><option value="">País doc</option></select>
+      <select id="a_docTipo">
+        <option value="">Tipo doc</option>
+        <option value="CI">CI</option>
+        <option value="DNI">DNI</option>
+        <option value="PAS">Pasaporte</option>
+        <option value="LC">Licencia de Conducir</option>
+        <option value="RES">Doc. de Residencia</option>
+      </select>
       <input id="a_docNumero" placeholder="Número doc" />
-      <input id="a_dirPais" placeholder="País dirección" />
+      <select id="a_dirPais" class="select-pais"><option value="">País dirección</option></select>
       <input id="a_dirLocalidad" placeholder="Localidad" />
       <input id="a_dirCalle" placeholder="Calle" />
       <input id="a_dirNumero" placeholder="Número" />
       <input id="a_dirCodigoPostal" placeholder="Código postal" />
-      <input id="a_paisJurisdiccion" placeholder="País jurisdicción" />
+      <select id="a_paisJurisdiccion" class="select-pais"><option value="">País jurisdicción</option></select>
       <input id="a_fechaAsignacionCargo" type="date" />
     </div>
     <div class="actions"><button class="btn tonal" onclick="registrarAdmin()"><span class="material-symbols-outlined">admin_panel_settings</span> Registrar administrador</button></div>
@@ -54,10 +67,17 @@
     <div class="form-grid">
       <input id="f_email" placeholder="Email" />
       <input id="f_passw" placeholder="Contraseña" type="password" />
-      <input id="f_docPais" placeholder="País doc" />
-      <input id="f_docTipo" placeholder="Tipo doc" />
+      <select id="f_docPais" class="select-pais"><option value="">País doc</option></select>
+      <select id="f_docTipo">
+        <option value="">Tipo doc</option>
+        <option value="CI">CI</option>
+        <option value="DNI">DNI</option>
+        <option value="PAS">Pasaporte</option>
+        <option value="LC">Licencia de Conducir</option>
+        <option value="RES">Doc. de Residencia</option>
+      </select>
       <input id="f_docNumero" placeholder="Número doc" />
-      <input id="f_dirPais" placeholder="País dirección" />
+      <select id="f_dirPais" class="select-pais"><option value="">País dirección</option></select>
       <input id="f_dirLocalidad" placeholder="Localidad" />
       <input id="f_dirCalle" placeholder="Calle" />
       <input id="f_dirNumero" placeholder="Número" />
@@ -119,6 +139,31 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  const PAISES = [
+    "Uruguay","Argentina","Brasil","Chile","Paraguay","Bolivia","Colombia","Ecuador","Perú","Venezuela",
+    "México","USA","Canadá","Costa Rica","Honduras","Guatemala","El Salvador","Nicaragua","Panamá","Cuba",
+    "República Dominicana","Haití","Jamaica","Trinidad y Tobago","Barbados","Bahamas",
+    "Alemania","Francia","España","Italia","Portugal","Inglaterra","Países Bajos","Bélgica","Suiza","Austria",
+    "Polonia","Croacia","Serbia","Eslovenia","Eslovaquia","República Checa","Hungría","Rumanía","Bulgaria","Grecia",
+    "Suecia","Noruega","Dinamarca","Finlandia","Islandia","Irlanda","Escocia","Gales",
+    "Rusia","Ucrania","Turquía","Georgia","Armenia","Azerbaiyán",
+    "Marruecos","Senegal","Nigeria","Camerún","Ghana","Costa de Marfil","Túnez","Argelia","Egipto","Sudáfrica",
+    "Japón","Corea del Sur","Arabia Saudita","Irán","Qatar","Australia","Nueva Zelanda",
+    "China","India","Indonesia","Filipinas","Tailandia","Vietnam","Malasia",
+    "Albania","Andorra","Bosnia y Herzegovina","Bielorrusia","Estonia","Letonia","Lituania","Luxemburgo",
+    "Malta","Moldavia","Montenegro","Macedonia del Norte","San Marino","Kosovo"
+  ].sort((a, b) => a.localeCompare(b, 'es'));
+
+  function poblarSelectPaises() {
+    const opciones = PAISES.map(p => `<option value="${p}">${p}</option>`).join('');
+    document.querySelectorAll('.select-pais').forEach(sel => {
+      sel.innerHTML = sel.options[0].outerHTML + opciones;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', poblarSelectPaises);
+</script>
 <script>
   let usuarioActual = null;
 

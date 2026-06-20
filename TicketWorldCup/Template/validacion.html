@@ -47,6 +47,18 @@
     </div>
     <div class="result" id="resEntradasValidadas"><span class="small-note">Seleccioná un evento y presioná "Cargar".</span></div>
   </div>
+
+  <div class="panel" style="grid-column: 1 / -1;">
+    <h2>4. Cobertura de funcionarios por evento</h2>
+    <p class="small-note" style="margin-bottom:12px;">Cada funcionario debe validar al menos una entrada en cada sector que le fue asignado.</p>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <select id="cob_idEvento" style="flex:1;">
+        <option value="">Seleccioná un evento</option>
+      </select>
+      <button class="btn outlined" onclick="cargarCobertura()"><span class="material-symbols-outlined">verified_user</span> Ver cobertura</button>
+    </div>
+    <div class="result" id="resCobertura"><span class="small-note">Seleccioná un evento y presioná "Ver cobertura".</span></div>
+  </div>
 </section>
 {% endblock %}
 
@@ -70,15 +82,51 @@
       if (!eventos.length) return;
       const opts = '<option value="">Seleccioná un evento</option>' +
         eventos.map(e => `<option value="${e.idEvento}">${escapeHtml(e.nombreEvento)} — ${escapeHtml(e.fecha)}</option>`).join('');
-      for (const id of ['le_idEvento', 'va_idEvento']) {
+      for (const id of ['le_idEvento', 'va_idEvento', 'cob_idEvento']) {
         const sel = document.getElementById(id);
         sel.innerHTML = opts;
         if (eventos.length === 1) sel.value = String(eventos[0].idEvento);
       }
       document.getElementById('le_idEvento').addEventListener('change', function() {
         document.getElementById('va_idEvento').value = this.value;
+        document.getElementById('cob_idEvento').value = this.value;
       });
     } catch (_) {}
+  }
+
+  async function cargarCobertura() {
+    const idEvento = document.getElementById('cob_idEvento').value;
+    if (!idEvento) { alert('Seleccioná un evento primero'); return; }
+    const el = document.getElementById('resCobertura');
+    try {
+      const data = await requestJSON('/eventos/' + idEvento + '/cobertura');
+      const funcionarios = data.cobertura || [];
+      if (!funcionarios.length) {
+        el.innerHTML = '<span class="small-note">No hay funcionarios asignados a este evento.</span>';
+        return;
+      }
+      const filas = funcionarios.map(f => {
+        const badge = f.cobertura_completa
+          ? '<span style="color:#1a7a4a;font-weight:600;">&#10003; Completa</span>'
+          : '<span style="color:#c0392b;font-weight:600;">&#9888; Incompleta</span>';
+        const sectores = f.sectores.map(s => {
+          const color = s.cumple ? '#1a7a4a' : '#c0392b';
+          const icon = s.cumple ? '&#10003;' : '&#9888;';
+          return `<span style="margin-right:10px;color:${color};">${icon} Sector ${escapeHtml(s.sectorCodigo)} (${s.validaciones} val.)</span>`;
+        }).join('');
+        return `<tr>
+          <td>${escapeHtml(f.emailFuncionario)}</td>
+          <td>${sectores}</td>
+          <td>${badge}</td>
+        </tr>`;
+      }).join('');
+      el.innerHTML = `<div style="overflow-x:auto;"><table>
+        <thead><tr><th>Funcionario</th><th>Sectores asignados</th><th>Cobertura</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>`;
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
   }
 
   async function cargarEntradasPendientes() {
