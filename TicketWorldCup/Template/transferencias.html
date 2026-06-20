@@ -30,20 +30,12 @@
     <div class="result" id="resPendientes"></div>
   </div>
 
-  <div class="panel" id="panelResponderManual">
-    <h2>Responder transferencia (manual)</h2>
-    <p class="small-note">Si no tenés sesión iniciada, ingresá el ID manualmente.</p>
-    <div class="form-grid">
-      <input id="rt_idTransferencia" placeholder="ID transferencia" />
-      <select id="rt_estado">
-        <option value="">Selecciona estado</option>
-        <option value="aceptada">Aceptar</option>
-        <option value="rechazada">Rechazar</option>
-      </select>
-    </div>
-    <div class="actions"><button class="btn tonal" onclick="responderTransferencia()"><span class="material-symbols-outlined">reply</span> Responder</button></div>
-    <div class="result" id="resRespuestaTransferencia"></div>
+  <div class="panel">
+    <h2>Transferencias aceptadas</h2>
+    <p class="small-note">Entradas que recibiste o enviaste y fueron aceptadas.</p>
+    <div class="result" id="resAceptadas"></div>
   </div>
+
 </section>
 {% endblock %}
 
@@ -96,7 +88,7 @@
           Transferencia #${id} ${label} correctamente.
         </div>
       `;
-      setTimeout(() => cargarPendientes(), 2000);
+      setTimeout(() => { cargarPendientes(); cargarAceptadas(); }, 2000);
     } catch (error) {
       fill('resPendientes', error.message);
     }
@@ -169,21 +161,37 @@
     }
   }
 
-  async function responderTransferencia() {
-    try {
-      fill('resRespuestaTransferencia', await post('/transferencia/' + rt_idTransferencia.value, {
-        estado: rt_estado.value,
-      }));
-      if (sesEmail) await cargarPendientes();
-    } catch (error) {
-      fill('resRespuestaTransferencia', error.message);
-    }
-  }
-
-  if (sesEmail) {
+if (sesEmail) {
     t_emailOrigen.value = sesEmail;
     cargarEntradas();
   }
+  async function cargarAceptadas() {
+    if (!sesEmail) return;
+    try {
+      const data = await requestJSON('/usuario/' + encodeURIComponent(sesEmail) + '/transferencias');
+      const aceptadas = (data.transferencias || []).filter(t => t.estado === 'aceptada');
+      const el = document.getElementById('resAceptadas');
+      if (!aceptadas.length) {
+        el.innerHTML = '<span class="small-note">No hay transferencias aceptadas todavía.</span>';
+        return;
+      }
+      el.innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>ID</th><th>Entrada</th><th>De</th><th>Para</th><th>Fecha</th></tr></thead><tbody>' +
+        aceptadas.map(t => {
+          const f = t.fechaTransferencia ? t.fechaTransferencia.slice(0, 16).replace('T', ' ') : '';
+          return `<tr>
+            <td>${t.idTransferencia}</td>
+            <td>#${t.idEntrada}</td>
+            <td>${escapeHtml(t.emailOrigen)}</td>
+            <td>${escapeHtml(t.emailDestino)}</td>
+            <td>${f}</td>
+          </tr>`;
+        }).join('') + '</tbody></table></div>';
+    } catch (_) {
+      document.getElementById('resAceptadas').innerHTML = '<span class="small-note">Error al cargar.</span>';
+    }
+  }
+
   cargarPendientes();
+  cargarAceptadas();
 </script>
 {% endblock %}
