@@ -11,7 +11,7 @@
   </div>
 
   <div class="panel">
-    <h2>Compra simple</h2>
+    <h2>Compra:</h2>
     <div class="form-grid">
       <input id="c_emailComprador" placeholder="Email comprador" />
       <select id="c_emailCompradorAdmin" class="full" style="display:none;">
@@ -107,8 +107,10 @@
 
       c_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
       c_idEvento.onchange = () => cargarSectoresCompra(c_idEvento.value);
-      if (eventos.length) {
-        c_idEvento.value = eventos[0].idEvento;
+      const eventoParam = new URLSearchParams(window.location.search).get('evento');
+      const idPreseleccionado = eventoParam || (eventos.length ? String(eventos[0].idEvento) : null);
+      if (idPreseleccionado) {
+        c_idEvento.value = idPreseleccionado;
         await cargarSectoresCompra(c_idEvento.value);
       }
     } catch (error) {

@@ -571,6 +571,8 @@ def procesar_compra():
         email_comprador = session.get("user_email") or datos.get("emailComprador")
     cantidad = int(datos.get("cantidad", 0))
 
+    if cantidad <= 0:
+        return _json_error("La cantidad debe ser mayor a 0.", 400)
     if cantidad > 5:
         return _json_error("No puedes comprar más de 5 entradas en la misma transaccion.", 400)
 
@@ -584,7 +586,12 @@ def procesar_compra():
 def ruta_compra_multiple():
     datos = _input_payload()
     email_comprador = session.get("user_email") or datos.get("emailComprador")
-    id_venta = registrar_venta_y_entradas(email_comprador, datos.get("items", []), datos.get("estado", "paga"))
+    items = datos.get("items", [])
+    for item in items:
+        cant = int(item.get("cantidad", 0))
+        if cant <= 0:
+            return _json_error("La cantidad de cada ítem debe ser mayor a 0.", 400)
+    id_venta = registrar_venta_y_entradas(email_comprador, items, datos.get("estado", "paga"))
     if id_venta:
         return _json_ok({"idVenta": id_venta})
     return _json_error("No se pudo registrar la compra múltiple", 500)
