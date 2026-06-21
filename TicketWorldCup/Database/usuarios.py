@@ -36,7 +36,8 @@ def autenticar_usuario(email, password):
                 ug.fechaRegistro,
                 CASE WHEN ug.email IS NOT NULL THEN 1 ELSE 0 END AS esUsuarioGeneral,
                 CASE WHEN a.email IS NOT NULL THEN 1 ELSE 0 END AS esAdministrador,
-                CASE WHEN f.email IS NOT NULL THEN 1 ELSE 0 END AS esFuncionario
+                CASE WHEN f.email IS NOT NULL THEN 1 ELSE 0 END AS esFuncionario,
+                a.paisJurisdiccion
             FROM Usuario u
             LEFT JOIN Usuario_General ug ON ug.email = u.email
             LEFT JOIN Administrador_Pais_Sede a ON a.email = u.email

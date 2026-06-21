@@ -12,8 +12,15 @@
 
   <div class="panel">
     <h2>Consultas de usuario</h2>
+    {% if not session_roles.get('admin') and not session_roles.get('funcionario') %}
+    <p class="small-note" style="margin-bottom:12px;">Estás viendo tus propios datos.</p>
+    {% endif %}
     <div class="form-grid">
-      <input id="q_email" placeholder="Email usuario" />
+      <input id="q_email" placeholder="Email usuario"
+        {% if not session_roles.get('admin') and not session_roles.get('funcionario') %}
+        value="{{ session_email }}" readonly style="background:var(--surface2);color:var(--on-surface-variant);"
+        {% endif %}
+      />
     </div>
     <div class="actions">
       <button class="btn" onclick="verCompras()"><span class="material-symbols-outlined">receipt_long</span> Ver compras</button>
@@ -75,12 +82,58 @@
     `;
   }
 
+  const sessionEmail = {{ (session_email or '')|tojson }};
+  const sessionRoles = {{ (session_roles or {})|tojson }};
+  const esPropioUsuario = () => !sessionRoles.admin && !sessionRoles.funcionario && q_email.value === sessionEmail;
+
   async function verCompras() {
     try {
       const data = await requestJSON(`/usuario/${q_email.value}/compras`);
-      renderReport('resConsultas', 'Compras del usuario', data.compras);
+      const compras = data.compras || [];
+      const el = document.getElementById('resConsultas');
+      if (!compras.length) {
+        el.innerHTML = '<div class="pill">Compras del usuario</div><div class="small-note" style="margin-top:12px;">No hay compras registradas.</div>';
+        return;
+      }
+      const mostrarPagar = esPropioUsuario();
+      const filas = compras.map(c => {
+        const badgeColor = c.estado === 'pendiente' ? '#b45309' : c.estado === 'confirmada' ? '#1d4ed8' : '#1a7a4a';
+        const badgeBg   = c.estado === 'pendiente' ? '#fef3c7' : c.estado === 'confirmada' ? '#dbeafe' : '#d1fae5';
+        const estadoBadge = `<span style="background:${badgeBg};color:${badgeColor};padding:2px 8px;border-radius:999px;font-size:0.78rem;font-weight:600;">${c.estado}</span>`;
+        const botonPagar = (mostrarPagar && c.estado === 'pendiente')
+          ? `<button class="btn tonal" style="padding:4px 12px;font-size:0.82rem;" onclick="pagarVenta(${c.idVenta}, this)"><span class="material-symbols-outlined" style="font-size:15px;">payments</span> Pagar</button>`
+          : '';
+        return `<tr>
+          <td>#${c.idVenta}</td>
+          <td>${escapeHtml(c.numero || '')}</td>
+          <td>${escapeHtml(c.fechaVenta || '')}</td>
+          <td>${c.cantidadEntradas}</td>
+          <td>$${parseFloat(c.montoTotal).toFixed(2)}</td>
+          <td>${estadoBadge}</td>
+          ${mostrarPagar ? `<td>${botonPagar}</td>` : ''}
+        </tr>`;
+      }).join('');
+      const thAccion = mostrarPagar ? '<th>Acción</th>' : '';
+      el.innerHTML = `<div class="pill">Compras del usuario</div>
+        <div style="margin-top:12px;overflow-x:auto;"><table>
+          <thead><tr><th>ID</th><th>Número</th><th>Fecha</th><th>Entradas</th><th>Total</th><th>Estado</th>${thAccion}</tr></thead>
+          <tbody>${filas}</tbody>
+        </table></div>`;
     } catch (error) {
       fill('resConsultas', error.message);
+    }
+  }
+
+  async function pagarVenta(idVenta, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+    try {
+      await post(`/venta/${idVenta}/pagar`, {});
+      await verCompras();
+    } catch (error) {
+      alert('Error: ' + error.message);
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">payments</span> Pagar';
     }
   }
 

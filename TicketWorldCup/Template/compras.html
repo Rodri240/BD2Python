@@ -11,7 +11,7 @@
   </div>
 
   <div class="panel">
-    <h2>Compra simple</h2>
+    <h2>Compra:</h2>
     <div class="form-grid">
       <input id="c_emailComprador" placeholder="Email comprador" />
       <select id="c_emailCompradorAdmin" class="full" style="display:none;">
@@ -27,6 +27,13 @@
     </div>
     <div class="actions"><button class="btn" onclick="comprarSimple()"><span class="material-symbols-outlined">shopping_cart_checkout</span> Comprar</button></div>
     <div class="result" id="resCompra"></div>
+  </div>
+
+  <div class="panel" style="grid-column: 1 / -1; display: none;" id="panelVentasPendientes">
+    <h2>Ventas pendientes de pago</h2>
+    <p class="small-note" style="margin-bottom:12px;">Las ventas se crean en estado <strong>pendiente</strong>. Confirmá el pago para cambiarlas a <strong>paga</strong>.</p>
+    <div class="actions"><button class="btn outlined" onclick="cargarVentasPendientes()"><span class="material-symbols-outlined">refresh</span> Actualizar</button></div>
+    <div class="result" id="resVentasPendientes"><span class="small-note">Presioná "Actualizar" para cargar las ventas pendientes.</span></div>
   </div>
 
   <div class="panel" style="grid-column: 1 / -1;">
@@ -100,8 +107,10 @@
 
       c_idEvento.innerHTML = '<option value="">Selecciona un evento</option>' + options;
       c_idEvento.onchange = () => cargarSectoresCompra(c_idEvento.value);
-      if (eventos.length) {
-        c_idEvento.value = eventos[0].idEvento;
+      const eventoParam = new URLSearchParams(window.location.search).get('evento');
+      const idPreseleccionado = eventoParam || (eventos.length ? String(eventos[0].idEvento) : null);
+      if (idPreseleccionado) {
+        c_idEvento.value = idPreseleccionado;
         await cargarSectoresCompra(c_idEvento.value);
       }
     } catch (error) {
@@ -139,12 +148,64 @@
     }
   }
 
+  async function cargarVentasPendientes() {
+    const el = document.getElementById('resVentasPendientes');
+    try {
+      const data = await requestJSON('/ventas/pendientes');
+      const ventas = data.ventas || [];
+      if (!ventas.length) {
+        el.innerHTML = '<span class="small-note">No hay ventas pendientes de pago.</span>';
+        return;
+      }
+      const filas = ventas.map(v => {
+        const badgeColor = v.estado === 'pendiente' ? '#b45309' : '#1d4ed8';
+        const badgeBg   = v.estado === 'pendiente' ? '#fef3c7' : '#dbeafe';
+        const estadoBadge = `<span style="background:${badgeBg};color:${badgeColor};padding:2px 8px;border-radius:999px;font-size:0.78rem;font-weight:600;">${v.estado}</span>`;
+        const accion = v.estado === 'pendiente'
+          ? `<button class="btn outlined" style="padding:4px 12px;font-size:0.82rem;" onclick="avanzarVenta(${v.idVenta},'pedido',this)"><span class="material-symbols-outlined" style="font-size:16px;">check_circle</span> Confirmar pedido</button>`
+          : `<button class="btn" style="padding:4px 12px;font-size:0.82rem;" onclick="avanzarVenta(${v.idVenta},'pago',this)"><span class="material-symbols-outlined" style="font-size:16px;">payments</span> Confirmar pago</button>`;
+        return `<tr>
+          <td>#${v.idVenta}</td>
+          <td>${escapeHtml(v.numero)}</td>
+          <td>${escapeHtml(v.emailComprador)}</td>
+          <td>${v.cantidadEntradas}</td>
+          <td>$${parseFloat(v.montoTotal).toFixed(2)}</td>
+          <td>${escapeHtml(v.fechaVenta || '')}</td>
+          <td>${estadoBadge}</td>
+          <td>${accion}</td>
+        </tr>`;
+      }).join('');
+      el.innerHTML = `<div style="overflow-x:auto;"><table>
+        <thead><tr><th>ID</th><th>Número</th><th>Comprador</th><th>Entradas</th><th>Total</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table></div>`;
+    } catch (error) {
+      el.innerHTML = '<span class="small-note">Error: ' + escapeHtml(error.message) + '</span>';
+    }
+  }
+
+  async function avanzarVenta(idVenta, tipo, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+    try {
+      const ruta = tipo === 'pedido' ? `/venta/${idVenta}/confirmar-pedido` : `/venta/${idVenta}/confirmar-pago`;
+      await post(ruta, {});
+      await cargarVentasPendientes();
+    } catch (error) {
+      alert('Error: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = tipo === 'pedido' ? 'Confirmar pedido' : 'Confirmar pago';
+    }
+  }
+
   cargarEventosCompra();
 
   if (sessionRoles.admin) {
     c_emailComprador.style.display = 'none';
     c_emailCompradorAdmin.style.display = 'block';
     cargarCompradoresAdmin();
+    document.getElementById('panelVentasPendientes').style.display = '';
+    cargarVentasPendientes();
   } else if (sessionEmail) {
     c_emailComprador.value = sessionEmail;
     c_emailComprador.readOnly = true;

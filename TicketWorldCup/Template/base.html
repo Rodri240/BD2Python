@@ -495,6 +495,7 @@
           <a href="{{ url_for('validacion') }}">Validación</a>
           <a href="{{ url_for('consultas') }}">Consultas</a>
           {% elif roles.get('funcionario') %}
+          <a href="{{ url_for('home') }}">Inicio</a>
           <a href="{{ url_for('perfil') }}">Perfil</a>
           <a href="{{ url_for('validacion') }}">Validación</a>
           {% else %}
@@ -514,7 +515,7 @@
           {% elif roles.get('funcionario') %}
           <span style="font-size:0.72rem;font-weight:500;background:var(--md-secondary-container);color:var(--md-on-secondary-container);padding:2px 8px;border-radius:999px;">Funcionario</span>
           {% else %}
-          <span style="font-size:0.72rem;font-weight:500;background:var(--md-surface-variant);color:var(--md-on-surface-variant);padding:2px 8px;border-radius:999px;">Usuario</span>
+          <span style="font-size:0.72rem;font-weight:500;background:var(--md-surface-variant);color:var(--md-on-surface-variant);padding:2px 8px;border-radius:999px;">Usuario General</span>
           {% endif %}
         </span>
         <form class="logout-form" action="{{ url_for('logout') }}" method="post">
@@ -539,7 +540,7 @@
 
     function renderJson(value) {
       if (value === null || value === undefined) {
-        return '<span class="small-note">sin datos</span>';
+        return '<span class="small-note">Sin Datos</span>';
       }
 
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -548,7 +549,7 @@
 
       if (Array.isArray(value)) {
         if (!value.length) {
-          return '<span class="small-note">sin datos</span>';
+          return '<span class="small-note">Sin Datos</span>';
         }
 
         const headers = [...new Set(value.flatMap((item) => (item && typeof item === 'object' && !Array.isArray(item)) ? Object.keys(item) : []))];
@@ -568,7 +569,7 @@
       if (typeof value === 'object') {
         const entries = Object.entries(value);
         if (!entries.length) {
-          return '<span class="small-note">sin datos</span>';
+          return '<span class="small-note">Sin Datos</span>';
         }
 
         const rows = entries.map(([key, item]) => `
@@ -621,7 +622,7 @@
     async function clearSession() {
       await post('/salir', {});
       const sessionUser = document.getElementById('sessionUser');
-      if (sessionUser) sessionUser.textContent = 'sin sesión';
+      if (sessionUser) sessionUser.textContent = 'Sin Sesión';
     }
   </script>
   {% block scripts %}{% endblock %}
