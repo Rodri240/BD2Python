@@ -31,6 +31,8 @@ from .usuarios import (
 from .infraestructura import (
     crear_estadio,
     crear_sector,
+    eliminar_sector,
+    deshabilitar_sector_evento,
     listar_estadios,
     listar_sectores,
     listar_codigos_sector_disponibles,
@@ -65,6 +67,10 @@ from .dispositivos import (
 from .compras import (
     registrar_venta_y_entradas,
     ejecutar_transaccion_venta,
+    confirmar_pedido_venta,
+    confirmar_pago_venta,
+    pagar_venta_usuario,
+    listar_ventas_pendientes,
     listar_compras_usuario,
     listar_entradas_usuario,
 )
@@ -120,6 +126,8 @@ __all__ = [
     # Infraestructura
     "crear_estadio",
     "crear_sector",
+    "eliminar_sector",
+    "deshabilitar_sector_evento",
     "listar_estadios",
     "listar_sectores",
     "listar_codigos_sector_disponibles",
@@ -140,6 +148,10 @@ __all__ = [
     # Compras
     "registrar_venta_y_entradas",
     "ejecutar_transaccion_venta",
+    "confirmar_pedido_venta",
+    "confirmar_pago_venta",
+    "pagar_venta_usuario",
+    "listar_ventas_pendientes",
     "listar_compras_usuario",
     "listar_entradas_usuario",
     # Transferencias

@@ -12,6 +12,8 @@ from Database import (
     listar_dispositivos_por_funcionario,
     crear_estadio,
     crear_sector,
+    eliminar_sector,
+    deshabilitar_sector_evento,
     crear_evento,
     vincular_equipo_evento,
     habilitar_sector_evento,
@@ -42,6 +44,10 @@ from Database import (
     actualizar_roles_usuario,
     registrar_venta_y_entradas,
     ejecutar_transaccion_venta,
+    confirmar_pedido_venta,
+    confirmar_pago_venta,
+    pagar_venta_usuario,
+    listar_ventas_pendientes,
     listar_compras_usuario,
     listar_entradas_usuario,
     listar_transferencias_usuario,
@@ -151,6 +157,20 @@ def _requiere_admin():
     return None
 
 
+def _estadio_es_del_admin(id_estadio):
+    """Devuelve True si el estadio pertenece al admin logueado."""
+    email = session.get("user_email")
+    mis_estadios = listar_estadios(email_admin=email)
+    return any(e["idEstadio"] == int(id_estadio) for e in mis_estadios)
+
+
+def _estadio_es_del_admin_por_sector(id_sector):
+    """Devuelve True si el sector pertenece a un estadio del admin logueado."""
+    email = session.get("user_email")
+    mis_sectores = listar_sectores(email_admin=email)
+    return any(s["idSector"] == int(id_sector) for s in mis_sectores)
+
+
 @app.route("/principal", methods=["GET"])
 def principal():
     if session.get("user_email"):
@@ -165,6 +185,7 @@ def index():
     return render_template(
         "index.html",
         session_email=session.get("user_email"),
+        session_roles=session.get("user_roles", {}),
     )
 
 
@@ -195,6 +216,7 @@ def login():
                     "admin": bool(usuario["esAdministrador"]),
                     "funcionario": bool(usuario["esFuncionario"]),
                 }
+                session["pais_jurisdiccion"] = usuario.get("paisJurisdiccion")
                 return redirect(url_for("home"))
             error = "Credenciales inválidas."
 
@@ -203,6 +225,8 @@ def login():
 
 @app.route("/registro", methods=["GET"])
 def registro():
+    if not _es_admin_activo():
+        return redirect(url_for("home"))
     return render_template("registro.html", session_email=session.get("user_email"))
 
 
@@ -264,7 +288,11 @@ def validacion():
 
 @app.route("/consultas", methods=["GET"])
 def consultas():
-    return render_template("consultas.html", session_email=session.get("user_email"))
+    return render_template(
+        "consultas.html",
+        session_email=session.get("user_email"),
+        session_roles=session.get("user_roles", {}),
+    )
 
 
 @app.route("/sesion", methods=["POST"])
@@ -282,6 +310,7 @@ def set_session_user():
 def clear_session_user():
     session.pop("user_email", None)
     session.pop("user_roles", None)
+    session.pop("pais_jurisdiccion", None)
     return _json_ok()
 
 
@@ -339,7 +368,7 @@ def ruta_crear_estadio():
     nombre = (datos.get("nombre") or "").strip()
     pais = (datos.get("pais") or "").strip()
     ciudad = (datos.get("ciudad") or "").strip()
-    email_admin = (datos.get("emailAdmin") or session.get("user_email") or "").strip()
+    email_admin = session.get("user_email") or ""
     fecha_asignacion = (datos.get("fechaAsignacion") or "").strip()
     if not nombre:
         return _json_error("Falta el nombre del estadio", 400)
@@ -347,10 +376,11 @@ def ruta_crear_estadio():
         return _json_error("Falta el país del estadio", 400)
     if not ciudad:
         return _json_error("Falta la ciudad del estadio", 400)
-    if not email_admin:
-        return _json_error("Falta el email del administrador", 400)
     if not fecha_asignacion:
         return _json_error("Falta la fecha de asignación", 400)
+    pais_jurisdiccion = session.get("pais_jurisdiccion")
+    if pais_jurisdiccion and pais.lower() != pais_jurisdiccion.lower():
+        return _json_error(f"Solo podés crear estadios en tu jurisdicción: {pais_jurisdiccion}", 403)
     nuevo_id, error = crear_estadio(nombre, pais, ciudad, email_admin, fecha_asignacion)
     if nuevo_id:
         return _json_ok({"idEstadio": nuevo_id})
@@ -375,10 +405,41 @@ def ruta_crear_sector():
         return _json_error("Falta la capacidad máxima del sector", 400)
     if costo is None:
         return _json_error("Falta el costo de entrada", 400)
+    if not _estadio_es_del_admin(id_estadio):
+        return _json_error("El estadio no pertenece a tu jurisdicción", 403)
     nuevo_id, error = crear_sector(id_estadio, codigo, capacidad, costo)
     if nuevo_id:
         return _json_ok({"idSector": nuevo_id})
     return _json_error(error or "No se pudo crear el sector", 500)
+
+
+@app.route("/sector/<int:id_sector>", methods=["DELETE"])
+def ruta_eliminar_sector(id_sector):
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    if not _estadio_es_del_admin_por_sector(id_sector):
+        return _json_error("El sector no pertenece a tu jurisdicción", 403)
+    exito, error = eliminar_sector(id_sector)
+    if exito:
+        return _json_ok({"eliminado": True})
+    return _json_error(error or "No se pudo eliminar el sector", 500)
+
+
+@app.route("/evento/sector", methods=["DELETE"])
+def ruta_deshabilitar_sector_evento():
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    datos = _input_payload()
+    id_evento = datos.get("idEvento")
+    id_sector = datos.get("idSector")
+    if not id_evento or not id_sector:
+        return _json_error("Faltan idEvento e idSector", 400)
+    exito, error = deshabilitar_sector_evento(id_evento, id_sector)
+    if exito:
+        return _json_ok({"deshabilitado": True})
+    return _json_error(error or "No se pudo deshabilitar el sector", 500)
 
 
 @app.route("/evento", methods=["POST"])
@@ -391,7 +452,7 @@ def ruta_crear_evento():
     fecha = (datos.get("fecha") or "").strip()
     hora = (datos.get("hora") or "").strip()
     id_estadio = datos.get("idEstadio")
-    email_admin = (datos.get("emailAdmin") or session.get("user_email") or "").strip()
+    email_admin = session.get("user_email") or ""
     if not nombre:
         return _json_error("Falta el nombre del evento", 400)
     if not fecha:
@@ -400,8 +461,8 @@ def ruta_crear_evento():
         return _json_error("Falta la hora del evento", 400)
     if not id_estadio:
         return _json_error("Falta el ID del estadio", 400)
-    if not email_admin:
-        return _json_error("Falta el email del administrador", 400)
+    if not _estadio_es_del_admin(id_estadio):
+        return _json_error("El estadio no pertenece a tu jurisdicción", 403)
     nuevo_id, error = crear_evento(nombre, fecha, hora, id_estadio, email_admin)
     if nuevo_id:
         return _json_ok({"idEvento": nuevo_id})
@@ -430,17 +491,20 @@ def ruta_habilitar_sector():
 
 @app.route("/eventos", methods=["GET"])
 def ruta_listar_eventos():
-    return _json_ok({"eventos": listar_eventos()})
+    email_admin = session.get("user_email") if session.get("user_roles", {}).get("admin") else None
+    return _json_ok({"eventos": listar_eventos(email_admin)})
 
 
 @app.route("/estadios", methods=["GET"])
 def ruta_listar_estadios():
-    return _json_ok({"estadios": listar_estadios()})
+    email_admin = session.get("user_email") if session.get("user_roles", {}).get("admin") else None
+    return _json_ok({"estadios": listar_estadios(email_admin)})
 
 
 @app.route("/sectores", methods=["GET"])
 def ruta_listar_sectores():
-    return _json_ok({"sectores": listar_sectores()})
+    email_admin = session.get("user_email") if session.get("user_roles", {}).get("admin") else None
+    return _json_ok({"sectores": listar_sectores(email_admin)})
 
 
 @app.route("/vinculaciones", methods=["GET"])
@@ -475,7 +539,9 @@ def ruta_sectores_disponibles_evento(id_evento):
 
 @app.route("/eventos/<int:id_evento>/entradas-no-validadas", methods=["GET"])
 def ruta_entradas_no_validadas_evento(id_evento):
-    return _json_ok({"entradas": listar_entradas_no_validadas_por_evento(id_evento)})
+    roles = session.get("user_roles", {})
+    email_func = session.get("user_email") if roles.get("funcionario") and not roles.get("admin") else None
+    return _json_ok({"entradas": listar_entradas_no_validadas_por_evento(id_evento, email_func)})
 
 
 @app.route("/eventos/<int:id_evento>/entradas-validadas", methods=["GET"])
@@ -505,6 +571,8 @@ def procesar_compra():
         email_comprador = session.get("user_email") or datos.get("emailComprador")
     cantidad = int(datos.get("cantidad", 0))
 
+    if cantidad <= 0:
+        return _json_error("La cantidad debe ser mayor a 0.", 400)
     if cantidad > 5:
         return _json_error("No puedes comprar más de 5 entradas en la misma transaccion.", 400)
 
@@ -518,10 +586,56 @@ def procesar_compra():
 def ruta_compra_multiple():
     datos = _input_payload()
     email_comprador = session.get("user_email") or datos.get("emailComprador")
-    id_venta = registrar_venta_y_entradas(email_comprador, datos.get("items", []), datos.get("estado", "paga"))
+    items = datos.get("items", [])
+    for item in items:
+        cant = int(item.get("cantidad", 0))
+        if cant <= 0:
+            return _json_error("La cantidad de cada ítem debe ser mayor a 0.", 400)
+    id_venta = registrar_venta_y_entradas(email_comprador, items, datos.get("estado", "paga"))
     if id_venta:
         return _json_ok({"idVenta": id_venta})
     return _json_error("No se pudo registrar la compra múltiple", 500)
+
+
+@app.route("/ventas/pendientes", methods=["GET"])
+def ruta_ventas_pendientes():
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    return _json_ok({"ventas": listar_ventas_pendientes()})
+
+
+@app.route("/venta/<int:id_venta>/pagar", methods=["POST"])
+def ruta_pagar_venta(id_venta):
+    email = session.get("user_email")
+    if not email:
+        return _json_error("No autenticado", 401)
+    exito, error = pagar_venta_usuario(id_venta, email)
+    if exito:
+        return _json_ok({"pagado": True})
+    return _json_error(error or "No se pudo procesar el pago", 400)
+
+
+@app.route("/venta/<int:id_venta>/confirmar-pedido", methods=["POST"])
+def ruta_confirmar_pedido(id_venta):
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    exito, error = confirmar_pedido_venta(id_venta)
+    if exito:
+        return _json_ok({"confirmado": True})
+    return _json_error(error or "No se pudo confirmar el pedido", 400)
+
+
+@app.route("/venta/<int:id_venta>/confirmar-pago", methods=["POST"])
+def ruta_confirmar_pago(id_venta):
+    bloqueo = _requiere_admin()
+    if bloqueo:
+        return bloqueo
+    exito, error = confirmar_pago_venta(id_venta)
+    if exito:
+        return _json_ok({"confirmada": True})
+    return _json_error(error or "No se pudo confirmar el pago", 400)
 
 
 @app.route("/usuario/<string:email>/compras", methods=["GET"])
@@ -551,24 +665,24 @@ def ruta_solicitar_transferencia():
         return _json_error("Formato inválido de idsEntrada", 400)
     ids_entrada = [int(x) for x in ids_entrada if str(x).strip().isdigit()]
     if not origen:
-        return _json_error("Falta el email de origen", 400)
+        return _json_error("ERROR: Falta el email de origen", 400)
     if not destino:
-        return _json_error("Falta el email de destino", 400)
+        return _json_error("ERROR: Falta el email de destino", 400)
     if origen == destino:
-        return _json_error("El origen y destino no pueden ser el mismo", 400)
+        return _json_error("ERROR: El origen y destino no pueden ser el mismo", 400)
     if not ids_entrada:
-        return _json_error("Selecciona al menos una entrada para transferir", 400)
+        return _json_error("ERROR: Selecciona al menos una entrada para transferir", 400)
     ids, error = solicitar_transferencia(origen, destino, ids_entrada)
     if ids:
         return _json_ok({"idsTransferencia": ids, "cantidad": len(ids)})
-    return _json_error(error or "No se pudo solicitar la transferencia", 500)
+    return _json_error(error or "ERROR: No se pudo solicitar la transferencia", 500)
 
 
 @app.route("/transferencia/<int:id_transferencia>", methods=["POST"])
 def ruta_responder_transferencia(id_transferencia):
     datos = _input_payload()
     exito = responder_transferencia(id_transferencia, datos.get("estado"))
-    return _json_ok({"actualizada": exito}) if exito else _json_error("No se pudo responder la transferencia", 500)
+    return _json_ok({"actualizada": exito}) if exito else _json_error("ERROR: No se pudo responder la transferencia", 500)
 
 
 @app.route("/entrada/<int:id_entrada>/qr", methods=["POST"])
@@ -602,7 +716,7 @@ def ruta_mi_qr(id_entrada):
         datos.get("tiempoVencimiento", 30),
     )
     if not nuevo_token:
-        return _json_error("No se pudo registrar el token QR", 500)
+        return _json_error("Error: No se pudo registrar el token QR", 500)
     token = obtener_token_activo(id_entrada)
     return _json_ok({"idToken": nuevo_token, "token": token})
 
@@ -627,6 +741,16 @@ def ruta_asignaciones_evento(id_evento):
     return _json_ok({"asignaciones": listar_asignaciones_evento(id_evento)})
 
 
+@app.route("/eventos/<int:id_evento>/mis-sectores", methods=["GET"])
+def ruta_mis_sectores_evento(id_evento):
+    email = session.get("user_email")
+    if not email:
+        return _json_error("No autenticado", 401)
+    asignaciones = listar_asignaciones_funcionario(email)
+    sectores = [a["sectorCodigo"] for a in asignaciones if a.get("idEvento") == id_evento]
+    return _json_ok({"sectores": sectores})
+
+
 @app.route("/asignacion", methods=["POST"])
 def ruta_asignar_funcionario():
     bloqueo = _requiere_admin()
@@ -637,11 +761,11 @@ def ruta_asignar_funcionario():
     id_sector = datos.get("idSector")
     email = datos.get("emailFuncionario")
     if not id_evento or not id_sector or not email:
-        return _json_error("Faltan datos: idEvento, idSector, emailFuncionario", 400)
+        return _json_error("Error: Faltan datos: idEvento, idSector, emailFuncionario", 400)
     exito, error = asignar_funcionario_sector(id_evento, id_sector, email)
     if exito:
         return _json_ok({"asignado": True})
-    return _json_error(error or "No se pudo asignar el funcionario", 500)
+    return _json_error(error or "Error: No se pudo asignar el funcionario", 500)
 
 
 @app.route("/asignacion", methods=["DELETE"])
