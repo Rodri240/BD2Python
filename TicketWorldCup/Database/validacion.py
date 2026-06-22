@@ -3,6 +3,7 @@ Funciones para la validación de entradas mediante tokens QR.
 """
 
 import uuid
+from datetime import datetime
 
 try:
     from .connection import get_db_connection
@@ -140,16 +141,9 @@ def validar_entrada(id_token, id_dispositivo, email_funcionario):
             conn.rollback()
             return False, f"La entrada no puede validarse (estado actual: {token['estadoEntrada']})"
 
-        # Verificar que el token no haya expirado
-        cursor.execute(
-            """
-            SELECT TIMESTAMPDIFF(SECOND, fechaHoraGenerado, NOW()) AS segundos
-            FROM Token_QR WHERE idToken = %s
-            """,
-            (id_token,),
-        )
-        tiempo = cursor.fetchone()
-        if tiempo and tiempo["segundos"] > token["tiempoVencimiento"]:
+        # Verificar que el token no haya expirado (calculado en Python, evita round-trip)
+        segundos_transcurridos = (datetime.now() - token["fechaHoraGenerado"]).total_seconds()
+        if segundos_transcurridos > token["tiempoVencimiento"]:
             conn.rollback()
             return False, "El token QR ha expirado"
 

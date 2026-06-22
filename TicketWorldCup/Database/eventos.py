@@ -22,7 +22,7 @@ def crear_evento(nombre_evento, fecha, hora, id_estadio, email_admin):
             FROM Evento
             WHERE idEstadio = %s
               AND fecha = %s
-              AND ABS(TIME_TO_SEC(hora) - TIME_TO_SEC(%s)) < 14400
+              AND hora BETWEEN SUBTIME(%s, '04:00') AND ADDTIME(%s, '04:00')
             LIMIT 1
             """,
             (id_estadio, fecha, hora),
@@ -212,10 +212,10 @@ def listar_equipos_disponibles_evento(id_evento):
                 eq.nombre,
                 eq.paisOrigen
             FROM Equipo eq
-            WHERE eq.idEquipo NOT IN (
-                SELECT ee.idEquipo
+            WHERE NOT EXISTS (
+                SELECT 1
                 FROM Evento_Equipo ee
-                WHERE ee.idEvento = %s
+                WHERE ee.idEvento = %s AND ee.idEquipo = eq.idEquipo
             )
             ORDER BY eq.nombre
             """,
@@ -252,10 +252,10 @@ def listar_sectores_disponibles_evento(id_evento):
             JOIN Estadio st ON st.idEstadio = e.idEstadio
             JOIN Sector s ON s.idEstadio = st.idEstadio
             WHERE e.idEvento = %s
-              AND s.idSector NOT IN (
-                  SELECT es.idSector
+              AND NOT EXISTS (
+                  SELECT 1
                   FROM Evento_Sector es
-                  WHERE es.idEvento = %s
+                  WHERE es.idEvento = %s AND es.idSector = s.idSector
               )
             ORDER BY s.codigo
             """,
@@ -324,8 +324,8 @@ def listar_entradas_no_validadas_por_evento(id_evento, email_funcionario=None):
                     AND af.emailFuncionario = %s
                 WHERE e.idEvento = %s
                   AND e.estado != 'consumida'
-                  AND e.idEntrada NOT IN (
-                      SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
                   )
                 ORDER BY s.codigo, e.emailPropietario
                 """,
@@ -340,8 +340,8 @@ def listar_entradas_no_validadas_por_evento(id_evento, email_funcionario=None):
                 JOIN Sector s ON s.idSector = e.idSector
                 WHERE e.idEvento = %s
                   AND e.estado != 'consumida'
-                  AND e.idEntrada NOT IN (
-                      SELECT ve.idEntrada FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
+                  AND NOT EXISTS (
+                      SELECT 1 FROM Validacion_Entrada ve WHERE ve.idEntrada = e.idEntrada
                   )
                 ORDER BY s.codigo, e.emailPropietario
                 """,

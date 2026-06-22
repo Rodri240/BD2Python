@@ -46,8 +46,7 @@ def registrar_venta_y_entradas(email_comprador, items, estado='pendiente'):
                     s.costoEntrada,
                     s.capacidadMaxima
                 FROM Evento_Sector es
-                JOIN Evento e ON e.idEvento = es.idEvento
-                JOIN Sector s ON s.idEstadio = e.idEstadio AND s.idSector = es.idSector
+                JOIN Sector s ON s.idSector = es.idSector
                 WHERE es.idEvento = %s AND es.idSector = %s
                 FOR UPDATE
                 """,
