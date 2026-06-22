@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
