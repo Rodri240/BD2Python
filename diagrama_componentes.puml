@@ -1,0 +1,169 @@
+@startuml DigramadeComponentes
+!theme plain
+skinparam componentStyle rectangle
+
+title Diagrama de Componentes - TicketWorldCup
+
+' ==== Estilos ====
+skinparam backgroundColor #FEFEFE
+skinparam component {
+  BorderColor #2E86C1
+  BackgroundColor #D6EAF8
+  FontSize 11
+  FontName Arial
+}
+skinparam database {
+  BorderColor #1E8449
+  BackgroundColor #D5F5E3
+  FontSize 11
+  FontName Arial
+}
+skinparam node {
+  BorderColor #6C3483
+  BackgroundColor #E8DAEF
+  FontSize 11
+  FontName Arial
+}
+skinparam interface {
+  BorderColor #34495E
+}
+
+' ==== Subsistemas / Paquetes ====
+
+package "Frontend (Jinja2 + JS)" as frontend {
+  [base.html] as base
+  [principal.html] as landing
+  [login.html] as loginPg
+  [registro_publico.html] as regPub
+  [index.html] as dashboard
+  [perfil.html] as perfil
+  [compras.html] as comprasPg
+  [transferencias.html] as transfPg
+  [validacion.html] as validPg
+  [consultas.html] as consultasPg
+  [registro.html] as registroPg
+  [infraestructura.html] as infraPg
+  [Static Assets] as static
+  base -down-> landing
+  base -down-> loginPg
+  base -down-> dashboard
+  base -down-> perfil
+  base -down-> comprasPg
+  base -down-> transfPg
+  base -down-> validPg
+  base -down-> consultasPg
+  base -down-> registroPg
+  base -down-> infraPg
+  base -down-> regPub
+}
+
+package "API Layer (Flask)" as api {
+  [Flask App] as app
+  [Route Handlers] as routes
+  [Auth Middleware] as auth
+  [JSON Helpers] as jsonHlp
+  app --> routes
+  app --> auth
+  app --> jsonHlp
+}
+
+package "Data Access Layer" as dal {
+  [connection.py] as conn
+  [utils.py] as utils
+  [usuarios.py] as usuarios
+  [infraestructura.py] as infra
+  [eventos.py] as eventos
+  [equipos.py] as equipos
+  [dispositivos.py] as disp
+  [compras.py] as compras
+  [transferencias.py] as transfs
+  [validacion.py] as valid
+  [reportes.py] as reportes
+  [__init__.py] as init
+
+  init --> usuarios
+  init --> infra
+  init --> eventos
+  init --> equipos
+  init --> disp
+  init --> compras
+  init --> transfs
+  init --> valid
+  init --> reportes
+  init --> utils
+
+  usuarios --> conn
+  usuarios --> utils
+  infra --> conn
+  eventos --> conn
+  eventos --> infra
+  equipos --> conn
+  disp --> conn
+  compras --> conn
+  compras --> utils
+  transfs --> conn
+  valid --> conn
+  valid --> utils
+  reportes --> conn
+}
+
+node "Base de Datos MySQL" as db {
+  database "19 Tablas\nREDACTED_DATABASE" as tables
+}
+
+' ==== Interfaces ====
+
+interface "HTTP / REST" as httpIf
+interface "Interfaz DAL" as dalIf
+interface "MySQL Protocol" as sqlIf
+
+' ==== Conexiones ====
+
+httpIf -up- landing
+httpIf -up- loginPg
+httpIf -up- regPub
+httpIf -up- dashboard
+httpIf -up- perfil
+httpIf -up- comprasPg
+httpIf -up- transfPg
+httpIf -up- validPg
+httpIf -up- consultasPg
+httpIf -up- registroPg
+httpIf -up- infraPg
+
+api -up- httpIf
+
+app .d.> httpIf : "render_template"
+
+api -down- dalIf
+init -up- dalIf
+
+dal -down- sqlIf
+db -up- sqlIf
+
+' ==== Notas / Leyendas ====
+
+note right of frontend
+  Plantillas Jinja2 con JavaScript vanilla
+  (fetch() para llamadas AJAX)
+end note
+
+note right of api
+  47 rutas HTTP
+  Sesión Flask (8h)
+  Roles: admin, funcionario, general
+end note
+
+note right of dal
+  ~90 funciones exportadas
+  Sin ORM (SQL manual)
+  Transacciones con FOR UPDATE
+end note
+
+note left of db
+  MySQL en REDACTED_HOST:50006
+  19 tablas, FK, CHECK, ENUM
+  Seed data incluida
+end note
+
+@enduml
