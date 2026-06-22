@@ -64,7 +64,7 @@ from Database import (
 )
 
 
-app = Flask(__name__, template_folder="Template")
+app = Flask(__name__, template_folder="Template", static_folder="static")
 app.secret_key = "ticketworldcup-dev"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 app.config["SESSION_REFRESH_EACH_REQUEST"] = True
@@ -91,6 +91,7 @@ PUBLIC_ENDPOINTS = {
     "principal",
     "clear_session_user",
     "static",
+    "serve_react",
 }
 
 
@@ -145,6 +146,15 @@ def _input_payload():
     return request.get_json(silent=True) or request.form
 
 
+@app.route("/api/me", methods=["GET"])
+def api_me():
+    email = session.get("user_email")
+    roles = session.get("user_roles", {})
+    if email:
+        return _json_ok({"email": email, "roles": roles})
+    return _json_error("No autenticado", 401)
+
+
 def _es_admin_activo():
     return bool(session.get("user_roles", {}).get("admin"))
 
@@ -182,11 +192,7 @@ def principal():
 def index():
     if not session.get("user_email"):
         return redirect(url_for("principal"))
-    return render_template(
-        "index.html",
-        session_email=session.get("user_email"),
-        session_roles=session.get("user_roles", {}),
-    )
+    return app.send_static_file("index.html")
 
 
 app.add_url_rule("/", endpoint="home", view_func=index)
@@ -227,14 +233,14 @@ def login():
 def registro():
     if not _es_admin_activo():
         return redirect(url_for("home"))
-    return render_template("registro.html", session_email=session.get("user_email"))
+    return app.send_static_file("index.html")
 
 
 @app.route("/registrarse", methods=["GET"])
 def registrarse():
     if session.get("user_email"):
         return redirect(url_for("home"))
-    return render_template("registro_publico.html")
+    return app.send_static_file("index.html")
 
 
 @app.route("/registrarse", methods=["POST"])
@@ -251,48 +257,32 @@ def ruta_registro_publico():
 
 @app.route("/perfil", methods=["GET"])
 def perfil():
-    return render_template("perfil.html", session_email=session.get("user_email"))
+    return app.send_static_file("index.html")
 
 
 @app.route("/infraestructura", methods=["GET"])
 def infraestructura():
-    return render_template(
-        "infraestructura.html",
-        session_email=session.get("user_email"),
-        session_roles=session.get("user_roles", {}),
-    )
+    return app.send_static_file("index.html")
 
 
 @app.route("/compras", methods=["GET"])
 def compras():
-    return render_template(
-        "compras.html",
-        session_email=session.get("user_email"),
-        session_roles=session.get("user_roles", {}),
-    )
+    return app.send_static_file("index.html")
 
 
 @app.route("/transferencias", methods=["GET"])
 def transferencias():
-    return render_template("transferencias.html", session_email=session.get("user_email"))
+    return app.send_static_file("index.html")
 
 
 @app.route("/validacion", methods=["GET"])
 def validacion():
-    return render_template(
-        "validacion.html",
-        session_email=session.get("user_email"),
-        session_roles=session.get("user_roles", {}),
-    )
+    return app.send_static_file("index.html")
 
 
 @app.route("/consultas", methods=["GET"])
 def consultas():
-    return render_template(
-        "consultas.html",
-        session_email=session.get("user_email"),
-        session_roles=session.get("user_roles", {}),
-    )
+    return app.send_static_file("index.html")
 
 
 @app.route("/sesion", methods=["POST"])
@@ -872,6 +862,17 @@ def ruta_actualizar_roles(email):
     if exito:
         return _json_ok({"actualizado": True})
     return _json_error(error or "No se pudieron actualizar los roles", 500)
+
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_react(path=""):
+    if path and (
+        path.startswith("api/")
+        or path.startswith("static/")
+    ):
+        return _json_error("Not found", 404)
+    return app.send_static_file("index.html")
 
 
 if __name__ == "__main__":
